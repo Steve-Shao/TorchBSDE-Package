@@ -9,8 +9,8 @@ class PricingDefaultRisk(Equation):
     Nonlinear Black-Scholes equation with default risk in PNAS paper
     doi.org/10.1073/pnas.1718942115
     """
-    def __init__(self, eqn_config):
-        super(PricingDefaultRisk, self).__init__(eqn_config)
+    def __init__(self, eqn_config, device=None, dtype=None):
+        super(PricingDefaultRisk, self).__init__(eqn_config, device=device, dtype=dtype)
         self.x_init = np.ones(self.dim) * 100.0
         self.sigma = 0.2
         self.rate = 0.02   # interest rate R

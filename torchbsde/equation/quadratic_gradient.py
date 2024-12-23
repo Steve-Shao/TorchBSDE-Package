@@ -9,8 +9,8 @@ class QuadraticGradient(Equation):
     An example PDE with quadratically growing derivatives in Section 4.6 of Comm. Math. Stat. paper
     doi.org/10.1007/s40304-017-0117-6
     """
-    def __init__(self, eqn_config):
-        super(QuadraticGradient, self).__init__(eqn_config)
+    def __init__(self, eqn_config, device=None, dtype=None):
+        super(QuadraticGradient, self).__init__(eqn_config, device=device, dtype=dtype)
         self.alpha = 0.4
         self.x_init = np.zeros(self.dim)
         base = self.total_time + np.sum(np.square(self.x_init) / self.dim)

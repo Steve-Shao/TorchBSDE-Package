@@ -52,10 +52,12 @@ class FeedForwardSubNet(nn.Module):
     The logic and structure remain identical to the TensorFlow version, only the framework changed.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, device=None, dtype=None):
         super(FeedForwardSubNet, self).__init__()
         dim = config['eqn_config']['dim']
         num_hiddens = config['net_config']['num_hiddens']
+        self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.dtype = dtype if dtype else torch.float32
 
         # Create batch normalization layers:
         # In TF: len(num_hiddens) + 2 BN layers
@@ -64,10 +66,10 @@ class FeedForwardSubNet(nn.Module):
         # Then each hidden BN: dimension matches the corresponding hidden layer
         # Final BN: dimension = `dim`
         self.bn_layers = nn.ModuleList()
-        self.bn_layers.append(nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01))
+        self.bn_layers.append(nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
         for h in num_hiddens:
-            self.bn_layers.append(nn.BatchNorm1d(h, eps=1e-6, momentum=0.01))
-        self.bn_layers.append(nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01))
+            self.bn_layers.append(nn.BatchNorm1d(h, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
+        self.bn_layers.append(nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
 
         # Create linear (dense) layers:
         # First hidden layer: from dim -> num_hiddens[0]
@@ -76,10 +78,10 @@ class FeedForwardSubNet(nn.Module):
         self.dense_layers = nn.ModuleList()
         in_features = dim
         for h in num_hiddens:
-            layer = nn.Linear(in_features, h, bias=False)
+            layer = nn.Linear(in_features, h, bias=False, device=self.device, dtype=self.dtype)
             self.dense_layers.append(layer)
             in_features = h
-        self.dense_layers.append(nn.Linear(in_features, dim, bias=False))
+        self.dense_layers.append(nn.Linear(in_features, dim, bias=False, device=self.device, dtype=self.dtype))
 
         # Initialize BN parameters to mimic TF initialization:
         # gamma_initializer: uniform(0.1, 0.5)
@@ -116,14 +118,16 @@ if __name__ == "__main__":
     # -------------------------------------------------------
     # Prepare Mock Configuration
     # -------------------------------------------------------
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    dtype = torch.float64
+
     mock_config = {
         'eqn_config': {'dim': 10},
         'net_config': {'num_hiddens': [20, 20]}
     }
 
     # Initialize the network
-    net = FeedForwardSubNet(mock_config)
-
+    net = FeedForwardSubNet(mock_config, device=device, dtype=dtype)
     # -------------------------------------------------------
     # Since we don't have a summary method as in TF, we can just print the model
     # structure by listing parameters and shapes.
@@ -163,7 +167,7 @@ if __name__ == "__main__":
     print("\nInput Data Characteristics:")
     print(f"Input shape: {test_input_data.shape}")
     print(f"Input mean: {test_input_data.mean():.4f}, Input std: {test_input_data.std():.4f}")
-    test_input = torch.tensor(test_input_data)
+    test_input = torch.tensor(test_input_data, device=device, dtype=dtype)
 
     # -------------------------------------------------------
     # Forward Pass in Training Mode
@@ -216,6 +220,6 @@ if __name__ == "__main__":
     net.eval()
     for bsz in [1, 16, 64]:
         test_input_var = np.tile(np.linspace(0, 1, input_dim), (bsz, 1)).astype(np.float32)
-        test_input_var = torch.tensor(test_input_var)
+        test_input_var = torch.tensor(test_input_var, device=device, dtype=dtype)
         out_var = net(test_input_var, training=False).detach().cpu().numpy()
         print(f"Batch size {bsz}: Input {test_input_var.shape} -> Output {out_var.shape}")

@@ -9,8 +9,8 @@ class PricingDiffRate(Equation):
     Nonlinear Black-Scholes equation with different interest rates for borrowing and lending
     in Section 4.4 of Comm. Math. Stat. paper doi.org/10.1007/s40304-017-0117-6
     """
-    def __init__(self, eqn_config):
-        super(PricingDiffRate, self).__init__(eqn_config)
+    def __init__(self, eqn_config, device=None, dtype=None):
+        super(PricingDiffRate, self).__init__(eqn_config, device=device, dtype=dtype)
         self.x_init = np.ones(self.dim) * 100
         self.sigma = 0.2
         self.mu_bar = 0.06

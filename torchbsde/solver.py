@@ -30,15 +30,17 @@ class BSDESolver(object):
         config (dict): Configuration dictionary containing model and equation parameters
         bsde (object): BSDE equation object defining the problem to solve
         device (torch.device, optional): Device to run the computations on. Defaults to CUDA if available.
+        dtype (torch.dtype, optional): Data type for tensors. Defaults to float32.
     """
-    def __init__(self, config, bsde, device=None):
+    def __init__(self, config, bsde, device=None, dtype=None):
         self.eqn_config = config['eqn_config']
         self.net_config = config['net_config']
         self.bsde = bsde
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.dtype = dtype if dtype else torch.float32
 
         # Initialize model and get reference to y_init parameter
-        self.model = NonsharedModel(config, bsde).to(self.device)
+        self.model = NonsharedModel(config, bsde, device=self.device, dtype=self.dtype)
         self.y_init = self.model.y_init
 
         # Setup optimizer and learning rate scheduler
@@ -63,8 +65,8 @@ class BSDESolver(object):
         training_history = []
         valid_data = self.bsde.sample(self.net_config['valid_size'])
         valid_dw, valid_x = valid_data
-        valid_dw = torch.tensor(valid_dw, dtype=getattr(torch, self.net_config['dtype'])).to(self.device)
-        valid_x = torch.tensor(valid_x, dtype=getattr(torch, self.net_config['dtype'])).to(self.device)
+        valid_dw = torch.tensor(valid_dw, dtype=self.dtype, device=self.device)
+        valid_x = torch.tensor(valid_x, dtype=self.dtype, device=self.device)
 
         # Set model to evaluation mode for validation
         self.model.eval()
@@ -84,8 +86,8 @@ class BSDESolver(object):
             # Sample training data
             train_data = self.bsde.sample(self.net_config['batch_size'])
             dw, x = train_data
-            dw = torch.tensor(dw, dtype=getattr(torch, self.net_config['dtype'])).to(self.device)
-            x = torch.tensor(x, dtype=getattr(torch, self.net_config['dtype'])).to(self.device)
+            dw = torch.tensor(dw, dtype=self.dtype, device=self.device)
+            x = torch.tensor(x, dtype=self.dtype, device=self.device)
 
             # Perform a training step
             self.train_step(dw, x)
@@ -123,7 +125,7 @@ class BSDESolver(object):
             torch.Tensor: Computed loss value
         """
         y_terminal = self.model((dw, x), training)
-        g_terminal = self.bsde.g_torch(torch.tensor(self.bsde.total_time, dtype=getattr(torch, self.net_config['dtype'])).to(self.device), x[:, :, -1])
+        g_terminal = self.bsde.g_torch(torch.tensor(self.bsde.total_time, dtype=self.dtype, device=self.device), x[:, :, -1])
         delta = y_terminal - g_terminal
         abs_delta = torch.abs(delta)
         mask = abs_delta < DELTA_CLIP
@@ -187,7 +189,6 @@ if __name__ == '__main__':
             "batch_size": 64,
             "valid_size": 256,
             "logging_frequency": 100,
-            "dtype": "float32",
             "verbose": true
         }
     }''')
@@ -196,11 +197,12 @@ if __name__ == '__main__':
     # Model Initialization
     # -------------------------------------------------------
     # Initialize BSDE equation
-    bsde = getattr(eqn, config['eqn_config']['eqn_name'])(config['eqn_config'])
-    torch.set_default_dtype(getattr(torch, config['net_config']['dtype']))
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    dtype = torch.float32
+    bsde = getattr(eqn, config['eqn_config']['eqn_name'])(config['eqn_config'], device=device, dtype=dtype)
 
     # Initialize and train BSDE solver
-    solver = BSDESolver(config, bsde)
+    solver = BSDESolver(config, bsde, device=device, dtype=dtype)
     
     # -------------------------------------------------------
     # Testing Model Components
@@ -215,8 +217,8 @@ if __name__ == '__main__':
     print("\nTesting data generation...")
     test_batch = bsde.sample(config['net_config']['batch_size'])
     test_dw, test_x = test_batch
-    test_dw = torch.tensor(test_dw, dtype=getattr(torch, config['net_config']['dtype'])).to(solver.device)
-    test_x = torch.tensor(test_x, dtype=getattr(torch, config['net_config']['dtype'])).to(solver.device)
+    test_dw = torch.tensor(test_dw, dtype=solver.dtype, device=solver.device)
+    test_x = torch.tensor(test_x, dtype=solver.dtype, device=solver.device)
     print("Sample batch shapes - dw:", test_dw.shape, "x:", test_x.shape)
     
     # Test forward pass
@@ -260,7 +262,7 @@ if __name__ == '__main__':
     # -------------------------------------------------------
     # Model Persistence Analysis
     # -------------------------------------------------------
-    # Test model saving/loading if implemented
+    # Test model persistence capabilities
     print("\nModel persistence capabilities:")
     print("Trainable variables:")
     for name, param in solver.model.named_parameters():

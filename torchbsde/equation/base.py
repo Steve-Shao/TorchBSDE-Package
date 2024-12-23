@@ -15,9 +15,11 @@ class Equation(object):
         delta_t (float): Size of each time step (total_time / num_time_interval)
         sqrt_delta_t (float): Square root of delta_t, used in stochastic calculations
         y_init (float): Initial value of y, typically set by derived classes
+        device (torch.device): Device to run computations on
+        dtype (torch.dtype): Data type for tensors
     """
 
-    def __init__(self, eqn_config):
+    def __init__(self, eqn_config, device=None, dtype=None):
         """Initialize the base equation with configuration parameters.
         
         Args:
@@ -25,6 +27,8 @@ class Equation(object):
                 - dim: Dimension of the problem
                 - total_time: Total time horizon
                 - num_time_interval: Number of time discretization steps
+            device (torch.device, optional): Device to run computations on. Defaults to CUDA if available.
+            dtype (torch.dtype, optional): Data type for tensors. Defaults to float32.
         """
         # Core problem dimensions and time parameters
         self.dim = eqn_config['dim']
@@ -37,6 +41,10 @@ class Equation(object):
         
         # Initial value placeholder
         self.y_init = None
+
+        # Device and dtype settings
+        self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.dtype = dtype if dtype else torch.float32
 
     def sample(self, num_sample):
         """Sample forward Stochastic Differential Equation (SDE).
@@ -86,6 +94,9 @@ if __name__ == '__main__':
     torch.manual_seed(42)
     np.random.seed(42)
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    dtype = torch.float64
+
     # Create test configuration
     config = json.loads('''{
         "dim": 10,
@@ -94,7 +105,7 @@ if __name__ == '__main__':
     }''')
 
     # Initialize base equation
-    equation = Equation(config)
+    equation = Equation(config, device=device, dtype=dtype)
 
     # -------------------------------------------------------
     # Test Core Attributes
@@ -118,18 +129,18 @@ if __name__ == '__main__':
 
     try:
         equation.f_torch(
-            torch.tensor(0.0), 
-            torch.zeros(1, equation.dim),
-            torch.zeros(1, 1),
-            torch.zeros(1, equation.dim)
+            torch.tensor(0.0, device=equation.device, dtype=equation.dtype), 
+            torch.zeros(1, equation.dim, device=equation.device, dtype=equation.dtype),
+            torch.zeros(1, 1, device=equation.device, dtype=equation.dtype),
+            torch.zeros(1, equation.dim, device=equation.device, dtype=equation.dtype)
         )
     except NotImplementedError:
         print("f_torch() correctly raises NotImplementedError")
 
     try:
         equation.g_torch(
-            torch.tensor(1.0),
-            torch.zeros(1, equation.dim)
+            torch.tensor(1.0, device=equation.device, dtype=equation.dtype),
+            torch.zeros(1, equation.dim, device=equation.device, dtype=equation.dtype)
         )
     except NotImplementedError:
         print("g_torch() correctly raises NotImplementedError")
@@ -138,10 +149,10 @@ if __name__ == '__main__':
     # Test Tensor Types and Shapes
     # -------------------------------------------------------
     print("\nTesting tensor types and shapes:")
-    test_t = torch.tensor(0.5)
-    test_x = torch.randn(5, equation.dim)
-    test_y = torch.randn(5, 1)
-    test_z = torch.randn(5, equation.dim)
+    test_t = torch.tensor(0.5, device=equation.device, dtype=equation.dtype)
+    test_x = torch.randn(5, equation.dim, device=equation.device, dtype=equation.dtype)
+    test_y = torch.randn(5, 1, device=equation.device, dtype=equation.dtype)
+    test_z = torch.randn(5, equation.dim, device=equation.device, dtype=equation.dtype)
 
     print(f"Time tensor dtype: {test_t.dtype}")
     print(f"State tensor shape: {test_x.shape}")

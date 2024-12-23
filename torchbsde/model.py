@@ -27,22 +27,26 @@ class NonsharedModel(nn.Module):
     Args:
         config: Configuration object containing model and equation parameters
         bsde: BSDE equation object defining the problem to solve
+        device: Device to run computations on
+        dtype: Data type for tensors
     """
-    def __init__(self, config, bsde):
+    def __init__(self, config, bsde, device=None, dtype=None):
         super(NonsharedModel, self).__init__()
         self.eqn_config = config['eqn_config']
         self.net_config = config['net_config']
         self.bsde = bsde
+        self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.dtype = dtype if dtype else torch.float32
         
         # Initialize y and z variables with random values
         self.y_init = nn.Parameter(torch.FloatTensor(1).uniform_(
             self.net_config['y_init_range'][0],
             self.net_config['y_init_range'][1]
-        ))
-        self.z_init = nn.Parameter(torch.FloatTensor(1, self.eqn_config['dim']).uniform_(-0.1, 0.1))
+        ).to(device=self.device, dtype=self.dtype))
+        self.z_init = nn.Parameter(torch.FloatTensor(1, self.eqn_config['dim']).uniform_(-0.1, 0.1).to(device=self.device, dtype=self.dtype))
 
         # Create subnet for each time step except the last one
-        self.subnet = nn.ModuleList([FeedForwardSubNet(config) for _ in range(self.bsde.num_time_interval-1)])
+        self.subnet = nn.ModuleList([FeedForwardSubNet(config, device=self.device, dtype=self.dtype) for _ in range(self.bsde.num_time_interval-1)])
 
     def forward(self, inputs, training):
         """Forward pass of the model.
@@ -57,8 +61,8 @@ class NonsharedModel(nn.Module):
             y: Terminal value approximation
         """
         dw, x = inputs
-        time_stamp = torch.arange(0, self.eqn_config['num_time_interval']) * self.bsde.delta_t
-        all_one_vec = torch.ones(dw.shape[0], 1, device=dw.device, dtype=getattr(torch, self.net_config['dtype']))
+        time_stamp = torch.arange(0, self.eqn_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
+        all_one_vec = torch.ones(dw.shape[0], 1, device=self.device, dtype=self.dtype)
         y = all_one_vec * self.y_init
         z = torch.matmul(all_one_vec, self.z_init)
 
@@ -102,17 +106,16 @@ if __name__ == '__main__':
             "batch_size": 64,
             "valid_size": 256,
             "logging_frequency": 100,
-            "dtype": "float32",
             "verbose": true
         }
     }''')
-        
     # Initialize BSDE equation based on config
-    bsde = getattr(eqn, config['eqn_config']['eqn_name'])(config['eqn_config'])
-    torch.set_default_dtype(getattr(torch, config['net_config']['dtype']))
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    dtype = torch.float64
+    bsde = getattr(eqn, config['eqn_config']['eqn_name'])(config['eqn_config'], device=device, dtype=dtype)
 
     # Initialize NonsharedModel
-    model = NonsharedModel(config, bsde)
+    model = NonsharedModel(config, bsde, device=device, dtype=dtype)
 
     # -------------------------------------------------------
     # Model Structure Analysis
@@ -121,10 +124,8 @@ if __name__ == '__main__':
     print("------------------------")
     # Create dummy input to build the model
     batch_size = 64
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = model.to(device)
-    dw = torch.zeros((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device)
-    x = torch.zeros((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device)
+    dw = torch.zeros((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
+    x = torch.zeros((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
     model((dw, x), training=False)  # Build model
     print(model)
 
@@ -148,7 +149,7 @@ if __name__ == '__main__':
     print(f"Z initialization range: [-0.1, 0.1]")
     
     # Test each subnet individually
-    test_input = torch.randn((batch_size, config['eqn_config']['dim']), device=device)
+    test_input = torch.randn((batch_size, config['eqn_config']['dim']), device=device, dtype=dtype)
     for i, subnet in enumerate(model.subnet):
         subnet_output = subnet(test_input, training=False)
         print(f"\nSubnet {i} test:")
@@ -174,8 +175,8 @@ if __name__ == '__main__':
     print(f"Output max: {torch.max(y_zero):.6f}")
 
     # Test 2: Random normal inputs
-    dw_random = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device)
-    x_random = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device)
+    dw_random = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
+    x_random = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
     y_random = model((dw_random, x_random), training=False)
     print("\nTest with random normal inputs:")
     print(f"Output shape: {y_random.shape}")
@@ -185,8 +186,8 @@ if __name__ == '__main__':
     print(f"Output max: {torch.max(y_random):.6f}")
 
     # Test 3: Edge case with large values
-    dw_large = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device) * 10
-    x_large = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device) * 10
+    dw_large = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype) * 10
+    x_large = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype) * 10
     y_large = model((dw_large, x_large), training=False)
     print("\nTest with large inputs:")
     print(f"Output shape: {y_large.shape}")

@@ -16,13 +16,15 @@ class HJBLQ(Equation):
         sigma (float): Diffusion coefficient, set to sqrt(2)
         lambd (float): Control cost coefficient, set to 1.0
     """
-    def __init__(self, eqn_config):
+    def __init__(self, eqn_config, device=None, dtype=None):
         """Initialize the HJBLQ equation with given configuration.
         
         Args:
             eqn_config: Configuration dictionary containing PDE parameters
+            device: Device to run computations on
+            dtype: Data type for tensors
         """
-        super(HJBLQ, self).__init__(eqn_config)
+        super(HJBLQ, self).__init__(eqn_config, device=device, dtype=dtype)
         # Initialize model parameters
         self.x_init = np.zeros(self.dim)
         self.sigma = np.sqrt(2.0)
@@ -94,8 +96,11 @@ if __name__ == "__main__":
         'num_time_interval': 100
     }
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    dtype = torch.float64
+
     # Initialize equation
-    equation = HJBLQ(config)
+    equation = HJBLQ(config, device=device, dtype=dtype)
     print("\nInitialized HJBLQ equation with:")
     print(f"Dimension: {equation.dim}")
     print(f"Total time: {equation.total_time}")
@@ -119,10 +124,10 @@ if __name__ == "__main__":
     # Test Driver Function
     # -------------------------------------------------------
     print("\nTesting driver function:")
-    test_t = torch.tensor(0.5)
-    test_x = torch.randn(num_test_samples, equation.dim)
-    test_y = torch.randn(num_test_samples, 1)
-    test_z = torch.randn(num_test_samples, equation.dim)
+    test_t = torch.tensor(0.5, device=device, dtype=dtype)
+    test_x = torch.randn(num_test_samples, equation.dim, device=device, dtype=dtype)
+    test_y = torch.randn(num_test_samples, 1, device=device, dtype=dtype)
+    test_z = torch.randn(num_test_samples, equation.dim, device=device, dtype=dtype)
     
     f_value = equation.f_torch(test_t, test_x, test_y, test_z)
     print(f"Input shapes - t: {test_t.shape}, x: {test_x.shape}, y: {test_y.shape}, z: {test_z.shape}")
@@ -133,8 +138,8 @@ if __name__ == "__main__":
     # Test Terminal Condition
     # -------------------------------------------------------
     print("\nTesting terminal condition:")
-    test_t_final = torch.tensor(equation.total_time)
-    test_x_final = torch.randn(num_test_samples, equation.dim)
+    test_t_final = torch.tensor(equation.total_time, device=device, dtype=dtype)
+    test_x_final = torch.randn(num_test_samples, equation.dim, device=device, dtype=dtype)
     
     g_value = equation.g_torch(test_t_final, test_x_final)
     print(f"Input shapes - t: {test_t_final.shape}, x: {test_x_final.shape}")
@@ -150,4 +155,4 @@ if __name__ == "__main__":
     g_value.backward(torch.ones_like(g_value))
     grad = test_x_final.grad
     print(f"Gradient shape: {grad.shape}")
-    print(f"Sample gradient: {grad[0].detach().numpy()}")
+    print(f"Sample gradient: {grad[0].detach().cpu().numpy()}")

@@ -9,8 +9,8 @@ class ReactionDiffusion(Equation):
     Time-dependent reaction-diffusion-type example PDE in Section 4.7 of Comm. Math. Stat. paper
     doi.org/10.1007/s40304-017-0117-6
     """
-    def __init__(self, eqn_config):
-        super(ReactionDiffusion, self).__init__(eqn_config)
+    def __init__(self, eqn_config, device=None, dtype=None):
+        super(ReactionDiffusion, self).__init__(eqn_config, device=device, dtype=dtype)
         self._kappa = 0.6
         self.lambd = 1 / np.sqrt(self.dim)
         self.x_init = np.zeros(self.dim)
@@ -29,7 +29,7 @@ class ReactionDiffusion(Equation):
         exp_term = torch.exp((self.lambd ** 2) * self.dim * (t - self.total_time) / 2)
         sin_term = torch.sin(self.lambd * torch.sum(x, dim=1, keepdim=True))
         temp = y - self._kappa - 1 - sin_term * exp_term
-        return torch.minimum(torch.tensor(1.0), torch.square(temp))
+        return torch.minimum(torch.tensor(1.0, device=self.device, dtype=self.dtype), torch.square(temp))
 
     def g_torch(self, t, x):
         return 1 + self._kappa + torch.sin(self.lambd * torch.sum(x, dim=1, keepdim=True))

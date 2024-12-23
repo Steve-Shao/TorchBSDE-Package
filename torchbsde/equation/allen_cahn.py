@@ -6,8 +6,8 @@ from .base import Equation
 
 class AllenCahn(Equation):
     """Allen-Cahn equation in PNAS paper doi.org/10.1073/pnas.1718942115"""
-    def __init__(self, eqn_config):
-        super(AllenCahn, self).__init__(eqn_config)
+    def __init__(self, eqn_config, device=None, dtype=None):
+        super(AllenCahn, self).__init__(eqn_config, device=device, dtype=dtype)
         self.x_init = np.zeros(self.dim)
         self.sigma = np.sqrt(2.0)
 

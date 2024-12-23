@@ -49,10 +49,19 @@ def main(argv):
     # Load configuration file
     with open(FLAGS.config_path) as json_data_file:
         config = json.load(json_data_file)
+
+    # Set device and dtype
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        device = torch.device('mps')
+    else:
+        device = torch.device('cpu')
+    dtype = getattr(torch, config.get('dtype', 'float32'))
+    print(f"Using device: {device}, dtype: {dtype}")
         
     # Initialize BSDE equation based on config
-    bsde = getattr(eqn, config['eqn_config']['eqn_name'])(config['eqn_config'])
-    torch.set_default_dtype(getattr(torch, config['net_config']['dtype']))
+    bsde = getattr(eqn, config['eqn_config']['eqn_name'])(config['eqn_config'], device=device, dtype=dtype)
 
     # Create log directory if it doesn't exist
     if not os.path.exists(FLAGS.log_dir):
@@ -69,7 +78,7 @@ def main(argv):
 
     # Initialize and train BSDE solver
     logging.info('Begin to solve %s ' % config['eqn_config']['eqn_name'])
-    bsde_solver = BSDESolver(config, bsde)
+    bsde_solver = BSDESolver(config, bsde, device=device, dtype=dtype)
     training_history = bsde_solver.train()
 
     # Log results if initial value exists

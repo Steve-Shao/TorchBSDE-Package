@@ -9,8 +9,8 @@ class BurgersType(Equation):
     Multidimensional Burgers-type PDE in Section 4.5 of Comm. Math. Stat. paper
     doi.org/10.1007/s40304-017-0117-6
     """
-    def __init__(self, eqn_config):
-        super(BurgersType, self).__init__(eqn_config)
+    def __init__(self, eqn_config, device=None, dtype=None):
+        super(BurgersType, self).__init__(eqn_config, device=device, dtype=dtype)
         self.x_init = np.zeros(self.dim)
         self.y_init = 1 - 1.0 / (1 + np.exp(0 + np.sum(self.x_init) / self.dim))
         self.sigma = self.dim + 0.0
