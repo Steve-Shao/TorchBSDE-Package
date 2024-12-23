@@ -1,0 +1,13 @@
+# .gitignore
+*.pyc
+*.egg-info/
+*.code-workspace
+.DS_Store
+env/
+venv/
+__pycache__/
+output/
+build/
+logs/
+dist/
+tests/*/

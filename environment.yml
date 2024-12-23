@@ -1,0 +1,27 @@
+# Conda environment configuration for the project
+# System: Ubuntu 24.01 LTS
+# CUDA Version: 12.4
+name: torchbsde
+
+# Conda channels in order of priority
+channels:
+  - defaults
+  - conda-forge
+  
+dependencies:
+  # Core Python environment
+  - python=3.12
+  - pip
+
+  # Scientific computing packages
+  - numpy      # Numerical computing
+  - scipy      # Scientific algorithms
+  - cvxpy      # Convex optimization
+
+  # Data visualization
+  - matplotlib # Plotting library
+  - seaborn    # Statistical visualization
+
+  # Additional packages installed via pip
+  - pip:
+    - torch    # Deep learning framework
