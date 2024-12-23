@@ -7,7 +7,7 @@ The code has been restructured to work either as an installable Python package o
 
 ## Installation
 
-You can install the DeepBSDE Solver in three ways:
+You can install the TorchBSDE Solver in three ways:
 
 ### 1. Direct Use
 
@@ -19,19 +19,19 @@ conda env create -f environment.yml
 
 ### 2. As a Git Submodule
 
-Add DeepBSDE as a git submodule to your project:
+Add TorchBSDE as a git submodule to your project:
 
 ```bash
-git submodule add https://github.com/steve-shao/DeepBSDE.git
+git submodule add https://github.com/steve-shao/TorchBSDE-Package.git
 git submodule update --init --recursive
 ```
 
 ### 3. Install as a Python Package from GitHub
 
-Install DeepBSDE directly from GitHub using pip:
+Install TorchBSDE directly from GitHub using pip:
 
 ```bash
-pip install git+https://github.com/steve-shao/DeepBSDE.git
+pip install git+https://github.com/steve-shao/TorchBSDE-Package.git
 ```
 
 
