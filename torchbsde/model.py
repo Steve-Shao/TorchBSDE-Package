@@ -38,15 +38,31 @@ class NonsharedModel(nn.Module):
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dtype = dtype if dtype else torch.float32
         
+        # ========== THIS PREVIOUS IMPLEMENTATION ASSUMES X0 IS CONSTANT ========== #
+
         # Initialize y and z variables with random values
-        self.y_init = nn.Parameter(torch.FloatTensor(1).uniform_(
-            self.net_config['y_init_range'][0],
-            self.net_config['y_init_range'][1]
-        ).to(device=self.device, dtype=self.dtype))
-        self.z_init = nn.Parameter(torch.FloatTensor(1, self.eqn_config['dim']).uniform_(-0.1, 0.1).to(device=self.device, dtype=self.dtype))
+        # self.y_init = nn.Parameter(torch.FloatTensor(1).uniform_(
+        #     self.net_config['y_init_range'][0],
+        #     self.net_config['y_init_range'][1]
+        # ).to(device=self.device, dtype=self.dtype))
+        # self.z_init = nn.Parameter(torch.FloatTensor(1, self.eqn_config['dim']).uniform_(-0.1, 0.1).to(device=self.device, dtype=self.dtype))
 
         # Create subnet for each time step except the last one
-        self.subnet = nn.ModuleList([FeedForwardSubNet(config, device=self.device, dtype=self.dtype) for _ in range(self.bsde.num_time_interval-1)])
+        # self.subnet = nn.ModuleList([
+        #     FeedForwardSubNet(config, device=self.device, dtype=self.dtype) 
+        #     for _ in range(self.bsde.num_time_interval-1)
+        # ])
+
+        # ========== WE NOW ALLOW X0 TO BE RANDOMIZED ========== #
+
+        # Initialize y 
+        self.y_init = FeedForwardSubNet(config, device=self.device, dtype=self.dtype, is_derivative=False) 
+
+        # Create subnet for each time step except the last one
+        self.subnet = nn.ModuleList([
+            FeedForwardSubNet(config, device=self.device, dtype=self.dtype) 
+            for _ in range(self.bsde.num_time_interval)
+        ])
 
     def forward(self, inputs, training):
         """Forward pass of the model.
@@ -62,16 +78,21 @@ class NonsharedModel(nn.Module):
         """
         dw, x = inputs
         time_stamp = torch.arange(0, self.eqn_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
-        all_one_vec = torch.ones(dw.shape[0], 1, device=self.device, dtype=self.dtype)
-        y = all_one_vec * self.y_init
-        z = torch.matmul(all_one_vec, self.z_init)
+        # y = torch.ones(dw.shape[0], 1, device=self.device, dtype=self.dtype) * self.y_init
+        # z = torch.matmul(all_one_vec, self.z_init)
+        y = self.y_init(x[:, :, 0], training) # / self.bsde.dim
+        z = self.subnet[0](x[:, :, 0], training) / self.bsde.dim
+        # WHAT IS THIS `/ self.bsde.dim` DOING?
+        # WHAT IS THIS `/ self.bsde.dim` DOING?
+        # WHAT IS THIS `/ self.bsde.dim` DOING?
 
         # Forward propagation through time steps
         for t in range(0, self.bsde.num_time_interval-1):
             y = y - self.bsde.delta_t * (
                 self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z)
             ) + torch.sum(z * dw[:, :, t], 1, keepdim=True)
-            z = self.subnet[t](x[:, :, t + 1], training) / self.bsde.dim
+            # z = self.subnet[t](x[:, :, t + 1], training) / self.bsde.dim
+            z = self.subnet[t+1](x[:, :, t + 1], training) / self.bsde.dim
             
         # Handle terminal time step
         y = y - self.bsde.delta_t * self.bsde.f_torch(time_stamp[-1], x[:, :, -2], y, z) + \

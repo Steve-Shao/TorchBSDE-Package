@@ -9,6 +9,7 @@ class AllenCahn(Equation):
     def __init__(self, eqn_config, device=None, dtype=None):
         super(AllenCahn, self).__init__(eqn_config, device=device, dtype=dtype)
         self.x_init = np.zeros(self.dim)
+        # self.x_init = np.zeros(self.dim) + np.random.normal(0, 1.0, self.dim)
         self.sigma = np.sqrt(2.0)
 
     def sample(self, num_sample):

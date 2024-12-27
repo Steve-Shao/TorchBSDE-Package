@@ -11,7 +11,7 @@
     "num_hiddens": [110, 110],
     "lr_values": [1e-2, 1e-2],
     "lr_boundaries": [1000],
-    "num_iterations": 2000,
+    "num_iterations": 5000,
     "batch_size": 64,
     "valid_size": 256,
     "logging_frequency": 100,

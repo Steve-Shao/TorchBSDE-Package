@@ -15,7 +15,7 @@ class FeedForwardSubNet(nn.Module):
       - Then applies a sequence of (Linear -> BN -> ReLU) layers for each hidden layer.
       - Finally, applies a last Linear layer followed by a final BN.
     
-    The final output dimension matches `dim`.
+    The final output dimension matches `dim` if is_derivative=True, else 1.
 
     Note on Implementation Details:
     -------------------------------
@@ -52,36 +52,40 @@ class FeedForwardSubNet(nn.Module):
     The logic and structure remain identical to the TensorFlow version, only the framework changed.
     """
 
-    def __init__(self, config, device=None, dtype=None):
+    def __init__(self, config, device=None, dtype=None, is_derivative=True):
         super(FeedForwardSubNet, self).__init__()
         dim = config['eqn_config']['dim']
         num_hiddens = config['net_config']['num_hiddens']
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dtype = dtype if dtype else torch.float32
 
+        out_features = dim if is_derivative else 1
+        # num_hiddens = num_hiddens if is_derivative else []
+        num_hiddens = num_hiddens if is_derivative else [num_hiddens[0]]
+
         # Create batch normalization layers:
         # In TF: len(num_hiddens) + 2 BN layers
         # For PyTorch BatchNorm1d, we must specify the number of features for each BN layer.
         # Initial BN: input dimension is `dim`
         # Then each hidden BN: dimension matches the corresponding hidden layer
-        # Final BN: dimension = `dim`
+        # Final BN: dimension = `dim` or 1
         self.bn_layers = nn.ModuleList()
         self.bn_layers.append(nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
         for h in num_hiddens:
             self.bn_layers.append(nn.BatchNorm1d(h, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
-        self.bn_layers.append(nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
+        self.bn_layers.append(nn.BatchNorm1d(out_features, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
 
         # Create linear (dense) layers:
         # First hidden layer: from dim -> num_hiddens[0]
         # Subsequent hidden layers: from num_hiddens[i-1] -> num_hiddens[i]
-        # Final layer: from num_hiddens[-1] -> dim
+        # Final layer: from num_hiddens[-1] -> dim or 1
         self.dense_layers = nn.ModuleList()
         in_features = dim
         for h in num_hiddens:
             layer = nn.Linear(in_features, h, bias=False, device=self.device, dtype=self.dtype)
             self.dense_layers.append(layer)
             in_features = h
-        self.dense_layers.append(nn.Linear(in_features, dim, bias=False, device=self.device, dtype=self.dtype))
+        self.dense_layers.append(nn.Linear(in_features, out_features, bias=False, device=self.device, dtype=self.dtype))
 
         # Initialize BN parameters to mimic TF initialization:
         # gamma_initializer: uniform(0.1, 0.5)
@@ -94,10 +98,11 @@ class FeedForwardSubNet(nn.Module):
             # moving_mean and moving_variance are handled automatically by PyTorch
 
     def forward(self, x, training):
-        # In PyTorch, to set training/inference mode for BN, we use net.train() or net.eval().
-        # Here, we rely on the 'training' argument:
-        # If training=True, we call self.train(), else self.eval(), before the forward pass outside.
-        # Since the user wants minimal changes and identical logic, we handle mode externally.
+        # Handle training mode internally
+        if training:
+            self.train()
+        else:
+            self.eval()
         
         # Initial BN
         x = self.bn_layers[0](x)
@@ -172,7 +177,6 @@ if __name__ == "__main__":
     # -------------------------------------------------------
     # Forward Pass in Training Mode
     # -------------------------------------------------------
-    net.train()  # Set model to training mode for BN
     output_training = net(test_input, training=True).detach().cpu().numpy()
     print("\nOutput (Training Mode) Characteristics:")
     print(f"Output shape: {output_training.shape}")
@@ -181,7 +185,6 @@ if __name__ == "__main__":
     # -------------------------------------------------------
     # Forward Pass in Inference Mode
     # -------------------------------------------------------
-    net.eval()  # Set model to inference mode for BN
     output_inference = net(test_input, training=False).detach().cpu().numpy()
     print("\nOutput (Inference Mode) Characteristics:")
     print(f"Output shape: {output_inference.shape}")
@@ -191,7 +194,6 @@ if __name__ == "__main__":
     # Consistency Checks over Multiple Training Passes
     # -------------------------------------------------------
     print("\nTesting Batch Normalization Behavior Over Multiple Training Passes:")
-    net.train()
     for i in range(3):
         output = net(test_input, training=True).detach().cpu().numpy()
         print(f"Training pass {i+1}: mean={output.mean():.4f}, std={output.std():.4f}")
@@ -217,7 +219,6 @@ if __name__ == "__main__":
     # Test with Different Batch Sizes
     # -------------------------------------------------------
     print("\nTesting Different Batch Sizes:")
-    net.eval()
     for bsz in [1, 16, 64]:
         test_input_var = np.tile(np.linspace(0, 1, input_dim), (bsz, 1)).astype(np.float32)
         test_input_var = torch.tensor(test_input_var, device=device, dtype=dtype)

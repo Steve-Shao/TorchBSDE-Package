@@ -69,17 +69,20 @@ class BSDESolver(object):
         valid_x = torch.tensor(valid_x, dtype=self.dtype, device=self.device)
 
         # Set model to evaluation mode for validation
-        self.model.eval()
+        # self.model.eval()
         with torch.no_grad():
             loss = self.loss_fn(valid_dw, valid_x, training=False).item()
-            y_init = self.y_init.data.cpu().numpy()[0]
+            # y_init = self.y_init.data.cpu().numpy()[0]
+            y_init = self.y_init(valid_x[:, :, 0], training=False)
+            y_init = y_init.data.cpu().numpy().mean()
             elapsed_time = time.time() - start_time
             training_history.append([0, loss, y_init, elapsed_time])
             if self.net_config['verbose']:
-                logging.info(f"step: {0:5},    loss: {loss:.4e}, Y0: {y_init:.4e},   elapsed time: {int(elapsed_time)}")
+                # logging.info(f"step: {0:5},    loss: {loss:.4e}, Y0: {y_init:.4e},   elapsed time: {int(elapsed_time)}")
+                print(f"step: {0:5},    loss: {loss:.6f}, Y0: {y_init:.6f},   elapsed time: {int(elapsed_time)}")
 
         # Set model back to training mode
-        self.model.train()
+        # self.model.train()
 
         # Main training loop
         for step in range(1, self.net_config['num_iterations'] + 1):
@@ -98,15 +101,19 @@ class BSDESolver(object):
 
             # Log progress at specified frequency
             if step % self.net_config['logging_frequency'] == 0:
-                self.model.eval()
+                # self.model.eval()
                 with torch.no_grad():
                     val_loss = self.loss_fn(valid_dw, valid_x, training=False).item()
-                    y_init = self.y_init.data.cpu().numpy()[0]
+                    # y_init = self.y_init.data.cpu().numpy()[0]
+                    y_init = self.y_init(valid_x[:, :, 0], training=False)
+                    y_init = y_init.data.cpu().numpy().mean()
                     elapsed_time = time.time() - start_time
                     training_history.append([step, val_loss, y_init, elapsed_time])
                     if self.net_config['verbose']:
-                        logging.info(f"step: {step:5},    loss: {val_loss:.4e}, Y0: {y_init:.4e},   elapsed time: {int(elapsed_time)}")
-                self.model.train()
+                        current_lr = self.optimizer.param_groups[0]['lr']
+                        # logging.info(f"step: {step:5},    loss: {val_loss:.4e}, Y0: {y_init:.4e},   elapsed time: {int(elapsed_time)},   lr: {current_lr:.4e}")
+                        print(f"step: {step:5},    loss: {val_loss:.6f}, Y0: {y_init:.6f},   elapsed time: {int(elapsed_time)},   lr: {current_lr:.6f}")
+                # self.model.train()
 
         return np.array(training_history)
 

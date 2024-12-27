@@ -27,6 +27,7 @@ class HJBLQ(Equation):
         super(HJBLQ, self).__init__(eqn_config, device=device, dtype=dtype)
         # Initialize model parameters
         self.x_init = np.zeros(self.dim)
+        # self.x_init = np.zeros(self.dim) + np.random.normal(0, 1.0, self.dim)
         self.sigma = np.sqrt(2.0)
         self.lambd = 1.0
 
