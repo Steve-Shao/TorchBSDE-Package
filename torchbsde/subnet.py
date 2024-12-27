@@ -59,63 +59,103 @@ class FeedForwardSubNet(nn.Module):
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dtype = dtype if dtype else torch.float32
 
+        # ---------------------------------------------------------------------
+        # Get BN usage flags from config, with default True if missing
+        # ---------------------------------------------------------------------
+        self.use_bn_input = config['net_config'].get('use_bn_input', True)
+        self.use_bn_hidden = config['net_config'].get('use_bn_hidden', True)
+        self.use_bn_output = config['net_config'].get('use_bn_output', True)
+
         out_features = dim if is_derivative else 1
-        # num_hiddens = num_hiddens if is_derivative else []
+        # If not derivative, we only use the first hidden layer
         num_hiddens = num_hiddens if is_derivative else [num_hiddens[0]]
 
-        # Create batch normalization layers:
-        # In TF: len(num_hiddens) + 2 BN layers
-        # For PyTorch BatchNorm1d, we must specify the number of features for each BN layer.
-        # Initial BN: input dimension is `dim`
-        # Then each hidden BN: dimension matches the corresponding hidden layer
-        # Final BN: dimension = `dim` or 1
+        # ---------------------------------------------------------------------
+        # Create Batch Normalization layers
+        # ---------------------------------------------------------------------
         self.bn_layers = nn.ModuleList()
-        self.bn_layers.append(nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
-        for h in num_hiddens:
-            self.bn_layers.append(nn.BatchNorm1d(h, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
-        self.bn_layers.append(nn.BatchNorm1d(out_features, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype))
+        
+        # (1) Input BN
+        if self.use_bn_input:
+            self.bn_layers.append(
+                nn.BatchNorm1d(dim, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype)
+            )
+        else:
+            self.bn_layers.append(None)
 
-        # Create linear (dense) layers:
-        # First hidden layer: from dim -> num_hiddens[0]
-        # Subsequent hidden layers: from num_hiddens[i-1] -> num_hiddens[i]
-        # Final layer: from num_hiddens[-1] -> dim or 1
+        # (2) BN for each hidden layer
+        for h in num_hiddens:
+            if self.use_bn_hidden:
+                self.bn_layers.append(
+                    nn.BatchNorm1d(h, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype)
+                )
+            else:
+                self.bn_layers.append(None)
+
+        # (3) Output BN
+        if self.use_bn_output:
+            self.bn_layers.append(
+                nn.BatchNorm1d(out_features, eps=1e-6, momentum=0.01, device=self.device, dtype=self.dtype)
+            )
+        else:
+            self.bn_layers.append(None)
+
+        # ---------------------------------------------------------------------
+        # Create linear (dense) layers
+        # ---------------------------------------------------------------------
         self.dense_layers = nn.ModuleList()
         in_features = dim
         for h in num_hiddens:
             layer = nn.Linear(in_features, h, bias=False, device=self.device, dtype=self.dtype)
             self.dense_layers.append(layer)
             in_features = h
-        self.dense_layers.append(nn.Linear(in_features, out_features, bias=False, device=self.device, dtype=self.dtype))
+        self.dense_layers.append(
+            nn.Linear(in_features, out_features, bias=False, device=self.device, dtype=self.dtype)
+        )
 
-        # Initialize BN parameters to mimic TF initialization:
-        # gamma_initializer: uniform(0.1, 0.5)
-        # beta_initializer: normal(0.0, 0.1)
+        # ---------------------------------------------------------------------
+        # Initialize BN parameters (if BN is used) to mimic TF initialization
+        # gamma_initializer: uniform(0.1, 0.5), beta_initializer: normal(0.0, 0.1)
+        # ---------------------------------------------------------------------
         for bn_layer in self.bn_layers:
-            if bn_layer.weight is not None:
-                nn.init.uniform_(bn_layer.weight, 0.1, 0.5)  # gamma
-            if bn_layer.bias is not None:
-                nn.init.normal_(bn_layer.bias, 0.0, 0.1)     # beta
-            # moving_mean and moving_variance are handled automatically by PyTorch
+            if bn_layer is not None:  # Skip if BN is disabled
+                if bn_layer.weight is not None:
+                    nn.init.uniform_(bn_layer.weight, 0.1, 0.5)  # gamma
+                if bn_layer.bias is not None:
+                    nn.init.normal_(bn_layer.bias, 0.0, 0.1)     # beta
+                # moving_mean / moving_variance handled automatically by PyTorch
 
     def forward(self, x, training):
-        # Handle training mode internally
+        # Handle training/eval mode
         if training:
             self.train()
         else:
             self.eval()
         
-        # Initial BN
-        x = self.bn_layers[0](x)
+        # ----------------------------------------------------------
+        # 1) Input BN (self.bn_layers[0])
+        # ----------------------------------------------------------
+        if self.bn_layers[0] is not None:
+            x = self.bn_layers[0](x)
 
-        # Hidden layers: Linear -> BN -> ReLU
+        # ----------------------------------------------------------
+        # 2) Hidden layers: Linear -> BN -> ReLU
+        # ----------------------------------------------------------
+        # Because we have len(num_hiddens) hidden layers, they occupy
+        # bn_layers indices 1..len(num_hiddens).
         for i in range(len(self.dense_layers) - 1):
             x = self.dense_layers[i](x)
-            x = self.bn_layers[i+1](x)
+            if self.bn_layers[i + 1] is not None:  # i+1 for BN index in hidden
+                x = self.bn_layers[i + 1](x)
             x = F.relu(x)
 
-        # Final layer and BN
+        # ----------------------------------------------------------
+        # 3) Final layer -> Output BN
+        # ----------------------------------------------------------
         x = self.dense_layers[-1](x)
-        x = self.bn_layers[-1](x)
+        if self.bn_layers[-1] is not None:
+            x = self.bn_layers[-1](x)
+
         return x
 
 
