@@ -65,10 +65,11 @@ class FeedForwardSubNet(nn.Module):
         self.use_bn_input = config['net_config'].get('use_bn_input', True)
         self.use_bn_hidden = config['net_config'].get('use_bn_hidden', True)
         self.use_bn_output = config['net_config'].get('use_bn_output', True)
+        self.use_shallow_y_init = config['net_config'].get('use_shallow_y_init', True)
 
         out_features = dim if is_derivative else 1
         # If not derivative, we only use the first hidden layer
-        num_hiddens = num_hiddens if is_derivative else [num_hiddens[0]]
+        num_hiddens = num_hiddens if is_derivative and self.use_shallow_y_init else [num_hiddens[0]]
 
         # ---------------------------------------------------------------------
         # Create Batch Normalization layers

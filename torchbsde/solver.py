@@ -39,6 +39,8 @@ class BSDESolver(object):
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dtype = dtype if dtype else torch.float32
 
+        self.negative_loss_penalty = config['net_config'].get('negative_loss_penalty', 0.0)
+
         # Initialize model and get reference to y_init parameter
         self.model = NonsharedModel(config, bsde, device=self.device, dtype=self.dtype)
         self.y_init = self.model.y_init
@@ -131,12 +133,13 @@ class BSDESolver(object):
         Returns:
             torch.Tensor: Computed loss value
         """
-        y_terminal = self.model((dw, x), training)
+        y_terminal, negative_loss = self.model((dw, x), training)
         g_terminal = self.bsde.g_torch(torch.tensor(self.bsde.total_time, dtype=self.dtype, device=self.device), x[:, :, -1])
         delta = y_terminal - g_terminal
         abs_delta = torch.abs(delta)
         mask = abs_delta < DELTA_CLIP
         loss = torch.mean(torch.where(mask, delta ** 2, 2 * DELTA_CLIP * abs_delta - DELTA_CLIP ** 2))
+        loss += self.negative_loss_penalty * negative_loss
         return loss
 
     def grad(self, dw, x, training):
@@ -230,7 +233,7 @@ if __name__ == '__main__':
     
     # Test forward pass
     print("\nTesting forward pass...")
-    y_pred = solver.model((test_dw, test_x), training=False)
+    y_pred, negative_loss = solver.model((test_dw, test_x), training=False)
     print("Model output shape:", y_pred.shape)
     
     # Test loss computation

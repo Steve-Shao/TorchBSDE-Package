@@ -64,6 +64,20 @@ class NonsharedModel(nn.Module):
             for _ in range(self.bsde.num_time_interval)
         ])
 
+    def calculate_negative_loss(self, func):
+        """Calculate the negative loss for a given tensor.
+        
+        Args:
+            func: Tensor to calculate negative loss from
+        
+        Returns:
+            negative_loss: Scalar tensor representing the negative loss
+        """
+        # zero_func = torch.minimum(torch.min(func, dim=1, keepdim=True)[0], torch.tensor(0.0, device=func.device, dtype=func.dtype))
+        zero_func = torch.minimum(torch.min(func, dim=0, keepdim=True)[0], torch.tensor(0.0, device=func.device, dtype=func.dtype))
+        negative_loss = torch.sum(zero_func ** 2)
+        return negative_loss
+
     def forward(self, inputs, training):
         """Forward pass of the model.
         
@@ -102,11 +116,13 @@ class NonsharedModel(nn.Module):
         dw, x = inputs
         time_stamp = torch.arange(0, self.eqn_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
         y = self.y_init(x[:, :, 0], training) # / self.bsde.dim
-        z = self.subnet[0](x[:, :, 0], training) / self.bsde.dim
+        negative_loss = self.calculate_negative_loss(y)
 
         # Forward propagation through time steps
         for t in range(0, self.bsde.num_time_interval):
             z = self.subnet[t](x[:, :, t], training) / self.bsde.dim
+            negative_loss += self.calculate_negative_loss(z)
+
             y = y - self.bsde.delta_t * (
                 self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z)
             ) + torch.sum(z * dw[:, :, t], 1, keepdim=True)
@@ -115,7 +131,7 @@ class NonsharedModel(nn.Module):
         # WHAT IS THIS `/ self.bsde.dim` DOING?
         # WHAT IS THIS `/ self.bsde.dim` DOING?
 
-        return y
+        return y, negative_loss
 
 
 if __name__ == '__main__':
