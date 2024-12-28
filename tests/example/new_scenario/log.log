@@ -1,0 +1,120 @@
+2024-12-28 17:19:47 - ========== Initialization Information ==========
+2024-12-28 17:19:47 - Date                 : 2024-12-28
+2024-12-28 17:19:47 - Time                 : 17:19:47
+2024-12-28 17:19:47 - Experiment directory : tests/example/new_scenario
+2024-12-28 17:19:47 - Device               : cuda
+2024-12-28 17:19:47 - Dtype                : torch.float64
+2024-12-28 17:19:47 - 
+2024-12-28 17:19:47 - step:     0, val loss: 20.299471, Y0: 0.106976, lr: 0.010000, elapsed time: 0
+2024-12-28 17:19:50 - step:   100, val loss: 12.539628, Y0: 1.072948, lr: 0.010000, elapsed time: 2
+2024-12-28 17:19:52 - step:   200, val loss: 7.300682, Y0: 1.916043, lr: 0.010000, elapsed time: 4
+2024-12-28 17:19:55 - step:   300, val loss: 3.968389, Y0: 2.627889, lr: 0.010000, elapsed time: 7
+2024-12-28 17:19:57 - step:   400, val loss: 2.001740, Y0: 3.206898, lr: 0.010000, elapsed time: 9
+2024-12-28 17:19:59 - step:   500, val loss: 0.940122, Y0: 3.655611, lr: 0.010000, elapsed time: 12
+2024-12-28 17:20:02 - step:   600, val loss: 0.415403, Y0: 3.985333, lr: 0.010000, elapsed time: 14
+2024-12-28 17:20:04 - step:   700, val loss: 0.154907, Y0: 4.255636, lr: 0.010000, elapsed time: 17
+2024-12-28 17:20:07 - step:   800, val loss: 0.052332, Y0: 4.475531, lr: 0.010000, elapsed time: 19
+2024-12-28 17:20:09 - step:   900, val loss: 0.034199, Y0: 4.531850, lr: 0.010000, elapsed time: 21
+2024-12-28 17:20:11 - step:  1000, val loss: 0.028977, Y0: 4.581324, lr: 0.005000, elapsed time: 24
+2024-12-28 17:22:43 - ========== Initialization Information ==========
+2024-12-28 17:22:43 - Date                 : 2024-12-28
+2024-12-28 17:22:43 - Time                 : 17:22:43
+2024-12-28 17:22:43 - Experiment directory : tests/example/new_scenario
+2024-12-28 17:22:43 - Device               : cuda
+2024-12-28 17:22:43 - Dtype                : torch.float64
+2024-12-28 17:22:43 - 
+2024-12-28 17:22:43 - step:     0, val loss: 20.299471, Y0: 0.106976, lr: 0.010000, elapsed time: 0
+2024-12-28 17:22:46 - step:   100, val loss: 12.539628, Y0: 1.072948, lr: 0.010000, elapsed time: 2
+2024-12-28 17:22:48 - step:   200, val loss: 7.300682, Y0: 1.916043, lr: 0.010000, elapsed time: 5
+2024-12-28 17:22:51 - step:   300, val loss: 3.968389, Y0: 2.627889, lr: 0.010000, elapsed time: 7
+2024-12-28 17:22:53 - step:   400, val loss: 2.001740, Y0: 3.206898, lr: 0.010000, elapsed time: 9
+2024-12-28 17:22:55 - step:   500, val loss: 0.940122, Y0: 3.655611, lr: 0.010000, elapsed time: 12
+2024-12-28 17:22:58 - step:   600, val loss: 0.415403, Y0: 3.985333, lr: 0.010000, elapsed time: 14
+2024-12-28 17:23:00 - step:   700, val loss: 0.154907, Y0: 4.255636, lr: 0.010000, elapsed time: 17
+2024-12-28 17:23:03 - step:   800, val loss: 0.052332, Y0: 4.475531, lr: 0.010000, elapsed time: 19
+2024-12-28 17:23:05 - step:   900, val loss: 0.034199, Y0: 4.531850, lr: 0.010000, elapsed time: 21
+2024-12-28 17:23:07 - step:  1000, val loss: 0.028977, Y0: 4.581324, lr: 0.005000, elapsed time: 24
+2024-12-28 17:29:19 - ========== Initialization Information ==========
+2024-12-28 17:29:19 - Date                 : 2024-12-28
+2024-12-28 17:29:19 - Time                 : 17:29:19
+2024-12-28 17:29:19 - Experiment directory : tests/example/new_scenario
+2024-12-28 17:29:19 - Device               : cuda
+2024-12-28 17:29:19 - Dtype                : torch.float64
+2024-12-28 17:29:19 - 
+2024-12-28 17:29:19 - step:     0, val loss: 20.299471, Y0: 0.106976, lr: 0.010000, elapsed time: 0
+2024-12-28 17:29:22 - step:   100, val loss: 12.539628, Y0: 1.072948, lr: 0.010000, elapsed time: 2
+2024-12-28 17:29:24 - step:   200, val loss: 7.300682, Y0: 1.916043, lr: 0.010000, elapsed time: 4
+2024-12-28 17:37:33 - ========== Initialization Information ==========
+2024-12-28 17:37:33 - Date                 : 2024-12-28
+2024-12-28 17:37:33 - Time                 : 17:37:33
+2024-12-28 17:37:33 - Experiment directory : tests/example/new_scenario
+2024-12-28 17:37:33 - Device               : cuda
+2024-12-28 17:37:33 - Dtype                : torch.float64
+2024-12-28 17:37:34 - step:     0, val loss: 20.299471, Y0: 0.106976, lr: 0.010000, elapsed time: 0
+2024-12-28 17:37:36 - step:   100, val loss: 12.539628, Y0: 1.072948, lr: 0.010000, elapsed time: 2
+2024-12-28 17:37:39 - step:   200, val loss: 7.300682, Y0: 1.916043, lr: 0.010000, elapsed time: 5
+2024-12-28 17:37:41 - step:   300, val loss: 3.968389, Y0: 2.627889, lr: 0.010000, elapsed time: 7
+2024-12-28 17:37:43 - step:   400, val loss: 2.001740, Y0: 3.206898, lr: 0.010000, elapsed time: 9
+2024-12-28 17:37:46 - step:   500, val loss: 0.940122, Y0: 3.655611, lr: 0.010000, elapsed time: 12
+2024-12-28 17:37:48 - step:   600, val loss: 0.415403, Y0: 3.985333, lr: 0.010000, elapsed time: 14
+2024-12-28 17:37:51 - step:   700, val loss: 0.154907, Y0: 4.255636, lr: 0.010000, elapsed time: 17
+2024-12-28 17:37:53 - step:   800, val loss: 0.052332, Y0: 4.475531, lr: 0.010000, elapsed time: 19
+2024-12-28 17:37:55 - step:   900, val loss: 0.034199, Y0: 4.531850, lr: 0.010000, elapsed time: 21
+2024-12-28 17:37:58 - step:  1000, val loss: 0.028977, Y0: 4.581324, lr: 0.005000, elapsed time: 24
+2024-12-28 17:38:37 - ========== Initialization Information ==========
+2024-12-28 17:38:37 - Date                 : 2024-12-28
+2024-12-28 17:38:37 - Time                 : 17:38:37
+2024-12-28 17:38:37 - Experiment directory : tests/example/new_scenario
+2024-12-28 17:38:37 - Device               : cuda
+2024-12-28 17:38:37 - Dtype                : torch.float64
+2024-12-28 17:38:38 - step:     0, val loss: 20.299471, Y0: 0.106976, lr: 0.010000, elapsed time: 0
+2024-12-28 17:38:40 - step:   100, val loss: 12.539628, Y0: 1.072948, lr: 0.010000, elapsed time: 2
+2024-12-28 17:38:43 - step:   200, val loss: 7.300682, Y0: 1.916043, lr: 0.010000, elapsed time: 5
+2024-12-28 17:38:45 - step:   300, val loss: 3.968389, Y0: 2.627889, lr: 0.010000, elapsed time: 7
+2024-12-28 17:38:48 - step:   400, val loss: 2.001740, Y0: 3.206898, lr: 0.010000, elapsed time: 9
+2024-12-28 17:38:50 - step:   500, val loss: 0.940122, Y0: 3.655611, lr: 0.010000, elapsed time: 12
+2024-12-28 17:38:52 - step:   600, val loss: 0.415403, Y0: 3.985333, lr: 0.010000, elapsed time: 14
+2024-12-28 17:38:55 - step:   700, val loss: 0.154907, Y0: 4.255636, lr: 0.010000, elapsed time: 16
+2024-12-28 17:38:57 - step:   800, val loss: 0.052332, Y0: 4.475531, lr: 0.010000, elapsed time: 19
+2024-12-28 17:38:59 - step:   900, val loss: 0.034199, Y0: 4.531850, lr: 0.010000, elapsed time: 21
+2024-12-28 17:39:02 - step:  1000, val loss: 0.028977, Y0: 4.581324, lr: 0.005000, elapsed time: 24
+2024-12-28 17:39:04 - step:  1100, val loss: 0.026906, Y0: 4.653563, lr: 0.005000, elapsed time: 26
+2024-12-28 17:39:07 - step:  1200, val loss: 0.024806, Y0: 4.557475, lr: 0.005000, elapsed time: 28
+2024-12-28 17:39:09 - step:  1300, val loss: 0.020954, Y0: 4.579911, lr: 0.005000, elapsed time: 31
+2024-12-28 17:39:11 - step:  1400, val loss: 0.022408, Y0: 4.577324, lr: 0.005000, elapsed time: 33
+2024-12-28 17:39:14 - step:  1500, val loss: 0.024345, Y0: 4.553567, lr: 0.005000, elapsed time: 35
+2024-12-28 17:39:16 - step:  1600, val loss: 0.023819, Y0: 4.559249, lr: 0.005000, elapsed time: 38
+2024-12-28 17:39:18 - step:  1700, val loss: 0.023937, Y0: 4.563128, lr: 0.005000, elapsed time: 40
+2024-12-28 17:39:21 - step:  1800, val loss: 0.032601, Y0: 4.505626, lr: 0.005000, elapsed time: 42
+2024-12-28 17:39:23 - step:  1900, val loss: 0.027581, Y0: 4.538184, lr: 0.005000, elapsed time: 45
+2024-12-28 17:39:25 - step:  2000, val loss: 0.021727, Y0: 4.585719, lr: 0.002500, elapsed time: 47
+2024-12-28 17:39:28 - step:  2100, val loss: 0.020906, Y0: 4.647257, lr: 0.002500, elapsed time: 49
+2024-12-28 17:39:30 - step:  2200, val loss: 0.021823, Y0: 4.586125, lr: 0.002500, elapsed time: 52
+2024-12-28 17:39:32 - step:  2300, val loss: 0.019687, Y0: 4.607887, lr: 0.002500, elapsed time: 54
+2024-12-28 17:39:35 - step:  2400, val loss: 0.021322, Y0: 4.588078, lr: 0.002500, elapsed time: 56
+2024-12-28 17:39:37 - step:  2500, val loss: 0.019572, Y0: 4.607414, lr: 0.002500, elapsed time: 59
+2024-12-28 17:39:39 - step:  2600, val loss: 0.020639, Y0: 4.583221, lr: 0.002500, elapsed time: 61
+2024-12-28 17:39:42 - step:  2700, val loss: 0.020558, Y0: 4.593877, lr: 0.002500, elapsed time: 63
+2024-12-28 17:39:44 - step:  2800, val loss: 0.022710, Y0: 4.560679, lr: 0.002500, elapsed time: 66
+2024-12-28 17:39:46 - step:  2900, val loss: 0.019368, Y0: 4.609418, lr: 0.002500, elapsed time: 68
+2024-12-28 17:39:49 - step:  3000, val loss: 0.025462, Y0: 4.540480, lr: 0.001250, elapsed time: 70
+2024-12-28 17:39:51 - step:  3100, val loss: 0.020066, Y0: 4.587238, lr: 0.001250, elapsed time: 73
+2024-12-28 17:39:54 - step:  3200, val loss: 0.019582, Y0: 4.595549, lr: 0.001250, elapsed time: 75
+2024-12-28 17:39:56 - step:  3300, val loss: 0.019215, Y0: 4.611244, lr: 0.001250, elapsed time: 78
+2024-12-28 17:39:58 - step:  3400, val loss: 0.019316, Y0: 4.603729, lr: 0.001250, elapsed time: 80
+2024-12-28 17:40:01 - step:  3500, val loss: 0.019783, Y0: 4.636440, lr: 0.001250, elapsed time: 83
+2024-12-28 17:40:03 - step:  3600, val loss: 0.019533, Y0: 4.600769, lr: 0.001250, elapsed time: 85
+2024-12-28 17:40:05 - step:  3700, val loss: 0.019997, Y0: 4.590000, lr: 0.001250, elapsed time: 87
+2024-12-28 17:40:08 - step:  3800, val loss: 0.020459, Y0: 4.578716, lr: 0.001250, elapsed time: 89
+2024-12-28 17:40:10 - step:  3900, val loss: 0.019434, Y0: 4.598719, lr: 0.001250, elapsed time: 92
+2024-12-28 17:40:12 - step:  4000, val loss: 0.019435, Y0: 4.603988, lr: 0.001250, elapsed time: 94
+2024-12-28 17:40:15 - step:  4100, val loss: 0.019120, Y0: 4.598386, lr: 0.001250, elapsed time: 96
+2024-12-28 17:40:17 - step:  4200, val loss: 0.019013, Y0: 4.601775, lr: 0.001250, elapsed time: 99
+2024-12-28 17:40:19 - step:  4300, val loss: 0.019729, Y0: 4.592403, lr: 0.001250, elapsed time: 101
+2024-12-28 17:40:22 - step:  4400, val loss: 0.020104, Y0: 4.582681, lr: 0.001250, elapsed time: 103
+2024-12-28 17:40:24 - step:  4500, val loss: 0.018852, Y0: 4.602578, lr: 0.001250, elapsed time: 106
+2024-12-28 17:40:26 - step:  4600, val loss: 0.019421, Y0: 4.595776, lr: 0.001250, elapsed time: 108
+2024-12-28 17:40:29 - step:  4700, val loss: 0.019403, Y0: 4.588556, lr: 0.001250, elapsed time: 110
+2024-12-28 17:40:31 - step:  4800, val loss: 0.019357, Y0: 4.593061, lr: 0.001250, elapsed time: 113
+2024-12-28 17:40:33 - step:  4900, val loss: 0.019779, Y0: 4.583842, lr: 0.001250, elapsed time: 115
+2024-12-28 17:40:36 - step:  5000, val loss: 0.020034, Y0: 4.578747, lr: 0.001250, elapsed time: 118

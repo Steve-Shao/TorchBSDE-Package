@@ -1,20 +1,28 @@
 {
-  "eqn_config": {
+  "equation_config": {
     "_comment": "Allen-Cahn equation in PNAS paper doi.org/10.1073/pnas.1718942115",
     "eqn_name": "AllenCahn",
     "total_time": 0.3,
     "dim": 100,
     "num_time_interval": 20
   },
-  "net_config": {
-    "y_init_range": [0.3, 0.5],
-    "num_hiddens": [110, 110],
-    "lr_values": [5e-4, 5e-4],
-    "lr_boundaries": [2000],
-    "num_iterations": 4000,
+  "network_config": {
+    "use_bn_input": true,
+    "use_bn_hidden": true,
+    "use_bn_output": true,
+    "use_shallow_y_init": true,
+    "num_hiddens": [110, 110]
+  },
+  "solver_config": {
     "batch_size": 64,
     "valid_size": 256,
+    "lr_start_value": 5e-4,
+    "lr_decay_rate": 1.0,
+    "lr_boundaries": [2000],
+    "num_iterations": 4000,
     "logging_frequency": 100,
+    "negative_loss_penalty": 0.0,
+    "delta_clip": 50,
     "verbose": true
   },
   "dtype": "float64"

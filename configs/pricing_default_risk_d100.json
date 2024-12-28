@@ -1,20 +1,29 @@
 {
-  "eqn_config": {
+  "equation_config": {
     "_comment": "Nonlinear Black-Scholes equation with default risk in PNAS paper doi.org/10.1073/pnas.1718942115",
     "eqn_name": "PricingDefaultRisk",
     "total_time": 1.0,
     "dim": 100,
     "num_time_interval": 40
   },
-  "net_config": {
+  "network_config": {
+    "use_bn_input": true,
+    "use_bn_hidden": true,
+    "use_bn_output": true,
+    "use_shallow_y_init": true,
     "y_init_range": [40, 50],
-    "num_hiddens": [110, 110],
-    "lr_values": [8e-3, 8e-3],
-    "lr_boundaries": [3000],
-    "num_iterations": 6000,
+    "num_hiddens": [110, 110]
+  },
+  "solver_config": {
     "batch_size": 64,
     "valid_size": 256,
+    "lr_start_value": 8e-3,
+    "lr_decay_rate": 1.0,
+    "lr_boundaries": [3000],
+    "num_iterations": 6000,
     "logging_frequency": 100,
+    "negative_loss_penalty": 0.0,
+    "delta_clip": 50,
     "verbose": true
   },
   "dtype": "float64"

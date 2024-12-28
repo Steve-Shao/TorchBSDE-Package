@@ -1,0 +1,39 @@
+{
+    "equation_config": {
+        "_comment": "HJB equation in PNAS paper doi.org/10.1073/pnas.1718942115",
+        "eqn_name": "HJBLQ",
+        "total_time": 1.0,
+        "dim": 100,
+        "num_time_interval": 20
+    },
+    "network_config": {
+        "use_bn_input": true,
+        "use_bn_hidden": true,
+        "use_bn_output": true,
+        "use_shallow_y_init": true,
+        "num_hiddens": [
+            110,
+            110
+        ]
+    },
+    "solver_config": {
+        "batch_size": 64,
+        "valid_size": 256,
+        "lr_start_value": 0.01,
+        "lr_decay_rate": 0.5,
+        "lr_boundaries": [
+            1000,
+            2000,
+            3000
+        ],
+        "num_iterations": 5000,
+        "logging_frequency": 100,
+        "negative_loss_penalty": 0.0,
+        "delta_clip": 50,
+        "verbose": true
+    },
+    "dtype": "float64",
+    "test_folder_path": "tests/example",
+    "test_scenario_name": "new_scenario",
+    "timezone": "America/Chicago"
+}

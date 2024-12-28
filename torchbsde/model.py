@@ -32,8 +32,8 @@ class NonsharedModel(nn.Module):
     """
     def __init__(self, config, bsde, device=None, dtype=None):
         super(NonsharedModel, self).__init__()
-        self.eqn_config = config['eqn_config']
-        self.net_config = config['net_config']
+        self.equation_config = config['equation_config']
+        self.network_config = config['network_config']
         self.bsde = bsde
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dtype = dtype if dtype else torch.float32
@@ -42,10 +42,10 @@ class NonsharedModel(nn.Module):
 
         # # Initialize y and z variables with random values
         # self.y_init = nn.Parameter(torch.FloatTensor(1).uniform_(
-        #     self.net_config['y_init_range'][0],
-        #     self.net_config['y_init_range'][1]
+        #     self.network_config['y_init_range'][0],
+        #     self.network_config['y_init_range'][1]
         # ).to(device=self.device, dtype=self.dtype))
-        # self.z_init = nn.Parameter(torch.FloatTensor(1, self.eqn_config['dim']).uniform_(-0.1, 0.1).to(device=self.device, dtype=self.dtype))
+        # self.z_init = nn.Parameter(torch.FloatTensor(1, self.equation_config['dim']).uniform_(-0.1, 0.1).to(device=self.device, dtype=self.dtype))
 
         # # Create subnet for each time step except the last one
         # self.subnet = nn.ModuleList([
@@ -94,7 +94,7 @@ class NonsharedModel(nn.Module):
         # ========== THIS PREVIOUS IMPLEMENTATION ASSUMES X0 IS CONSTANT ========== #
 
         # dw, x = inputs
-        # time_stamp = torch.arange(0, self.eqn_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
+        # time_stamp = torch.arange(0, self.equation_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
         # all_one_vec = torch.ones(dw.shape[0], 1, device=self.device, dtype=self.dtype)
         # y = torch.matmul(all_one_vec, self.y_init)
         # z = torch.matmul(all_one_vec, self.z_init)
@@ -114,7 +114,7 @@ class NonsharedModel(nn.Module):
         # ========== WE NOW ALLOW X0 TO BE RANDOMIZED ========== #
 
         dw, x = inputs
-        time_stamp = torch.arange(0, self.eqn_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
+        time_stamp = torch.arange(0, self.equation_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
         y = self.y_init(x[:, :, 0], training) # / self.bsde.dim
         negative_loss = self.calculate_negative_loss(y)
 
@@ -144,14 +144,14 @@ if __name__ == '__main__':
 
     # Load and parse configuration file
     config = json.loads('''{
-        "eqn_config": {
+        "equation_config": {
             "_comment": "HJB equation in PNAS paper doi.org/10.1073/pnas.1718942115",
             "eqn_name": "HJBLQ", 
             "total_time": 1.0,
             "dim": 100,
             "num_time_interval": 20
         },
-        "net_config": {
+        "network_config": {
             "y_init_range": [0, 1],
             "num_hiddens": [110, 110],
             "lr_values": [1e-2, 1e-2],
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     # Initialize BSDE equation based on config
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dtype = torch.float64
-    bsde = getattr(eqn, config['eqn_config']['eqn_name'])(config['eqn_config'], device=device, dtype=dtype)
+    bsde = getattr(eqn, config['equation_config']['eqn_name'])(config['equation_config'], device=device, dtype=dtype)
 
     # Initialize NonsharedModel
     model = NonsharedModel(config, bsde, device=device, dtype=dtype)
@@ -178,9 +178,9 @@ if __name__ == '__main__':
     print("------------------------")
     # Create dummy input to build the model
     batch_size = 64
-    dw = torch.zeros((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
-    x = torch.zeros((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
-    model((dw, x), training=False)  # Build model
+    dw = torch.zeros((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
+    x = torch.zeros((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
+    y, _ = model((dw, x), training=False)  # Build model
     print(model)
 
     # Print model parameters
@@ -199,11 +199,11 @@ if __name__ == '__main__':
     print("\nSubnet Details and Tests:")
     print("-----------------------")
     print(f"Number of subnets: {len(model.subnet)}")
-    print(f"Y initialization range: {config['net_config']['y_init_range']}")
+    print(f"Y initialization range: {config['network_config']['y_init_range']}")
     print(f"Z initialization range: [-0.1, 0.1]")
     
     # Test each subnet individually
-    test_input = torch.randn((batch_size, config['eqn_config']['dim']), device=device, dtype=dtype)
+    test_input = torch.randn((batch_size, config['equation_config']['dim']), device=device, dtype=dtype)
     for i, subnet in enumerate(model.subnet):
         subnet_output = subnet(test_input, training=False)
         print(f"\nSubnet {i} test:")
@@ -220,7 +220,7 @@ if __name__ == '__main__':
     print("----------------------------")
     
     # Test 1: Zero inputs
-    y_zero = model((dw, x), training=False)
+    y_zero, _ = model((dw, x), training=False)
     print("\nTest with zero inputs:")
     print(f"Output shape: {y_zero.shape}")
     print(f"Output mean: {torch.mean(y_zero):.6f}")
@@ -229,9 +229,9 @@ if __name__ == '__main__':
     print(f"Output max: {torch.max(y_zero):.6f}")
 
     # Test 2: Random normal inputs
-    dw_random = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
-    x_random = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype)
-    y_random = model((dw_random, x_random), training=False)
+    dw_random = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
+    x_random = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
+    y_random, _ = model((dw_random, x_random), training=False)
     print("\nTest with random normal inputs:")
     print(f"Output shape: {y_random.shape}")
     print(f"Output mean: {torch.mean(y_random):.6f}")
@@ -240,9 +240,9 @@ if __name__ == '__main__':
     print(f"Output max: {torch.max(y_random):.6f}")
 
     # Test 3: Edge case with large values
-    dw_large = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype) * 10
-    x_large = torch.randn((batch_size, config['eqn_config']['dim'], config['eqn_config']['num_time_interval']), device=device, dtype=dtype) * 10
-    y_large = model((dw_large, x_large), training=False)
+    dw_large = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype) * 10
+    x_large = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype) * 10
+    y_large, _ = model((dw_large, x_large), training=False)
     print("\nTest with large inputs:")
     print(f"Output shape: {y_large.shape}")
     print(f"Output mean: {torch.mean(y_large):.6f}")

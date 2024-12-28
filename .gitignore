@@ -11,3 +11,4 @@ build/
 logs/
 dist/
 tests/*/
+!tests/example/

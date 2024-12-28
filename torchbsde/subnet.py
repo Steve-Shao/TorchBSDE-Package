@@ -10,7 +10,7 @@ class FeedForwardSubNet(nn.Module):
     Current Implementation:
     -----------------------
     This network:
-      - Takes an input of dimension `dim` (from config.eqn_config.dim).
+      - Takes an input of dimension `dim` (from config.equation_config.dim).
       - Applies an initial Batch Normalization (BN).
       - Then applies a sequence of (Linear -> BN -> ReLU) layers for each hidden layer.
       - Finally, applies a last Linear layer followed by a final BN.
@@ -54,18 +54,18 @@ class FeedForwardSubNet(nn.Module):
 
     def __init__(self, config, device=None, dtype=None, is_derivative=True):
         super(FeedForwardSubNet, self).__init__()
-        dim = config['eqn_config']['dim']
-        num_hiddens = config['net_config']['num_hiddens']
+        dim = config['equation_config']['dim']
+        num_hiddens = config['network_config']['num_hiddens']
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dtype = dtype if dtype else torch.float32
 
         # ---------------------------------------------------------------------
         # Get BN usage flags from config, with default True if missing
         # ---------------------------------------------------------------------
-        self.use_bn_input = config['net_config'].get('use_bn_input', True)
-        self.use_bn_hidden = config['net_config'].get('use_bn_hidden', True)
-        self.use_bn_output = config['net_config'].get('use_bn_output', True)
-        self.use_shallow_y_init = config['net_config'].get('use_shallow_y_init', True)
+        self.use_bn_input = config['network_config'].get('use_bn_input', True)
+        self.use_bn_hidden = config['network_config'].get('use_bn_hidden', True)
+        self.use_bn_output = config['network_config'].get('use_bn_output', True)
+        self.use_shallow_y_init = config['network_config'].get('use_shallow_y_init', True)
 
         out_features = dim if is_derivative else 1
         # If not derivative, we only use the first hidden layer
@@ -168,8 +168,14 @@ if __name__ == "__main__":
     dtype = torch.float64
 
     mock_config = {
-        'eqn_config': {'dim': 10},
-        'net_config': {'num_hiddens': [20, 20]}
+        'equation_config': {'dim': 10},
+        'network_config': {
+            'num_hiddens': [20, 20],
+            'use_bn_input': True,
+            'use_bn_hidden': True,
+            'use_bn_output': True,
+            'use_shallow_y_init': True
+        }
     }
 
     # Initialize the network
@@ -195,20 +201,21 @@ if __name__ == "__main__":
 
     # BN layers (gamma=weight, beta=bias, moving_mean=running_mean, moving_variance=running_var)
     for idx, bn_layer in enumerate(net.bn_layers):
-        gamma = bn_layer.weight.detach().cpu().numpy()
-        beta = bn_layer.bias.detach().cpu().numpy()
-        moving_mean = bn_layer.running_mean.detach().cpu().numpy()
-        moving_variance = bn_layer.running_var.detach().cpu().numpy()
-        print(f"BN layer {idx} gamma shape: {gamma.shape}, mean: {gamma.mean():.4f}, std: {gamma.std():.4f}")
-        print(f"BN layer {idx} beta shape: {beta.shape}, mean: {beta.mean():.4f}, std: {beta.std():.4f}")
-        print(f"BN layer {idx} moving_mean shape: {moving_mean.shape}, mean: {moving_mean.mean():.4f}, std: {moving_mean.std():.4f}")
-        print(f"BN layer {idx} moving_variance shape: {moving_variance.shape}, mean: {moving_variance.mean():.4f}, std: {moving_variance.std():.4f}")
+        if bn_layer is not None:
+            gamma = bn_layer.weight.detach().cpu().numpy()
+            beta = bn_layer.bias.detach().cpu().numpy()
+            moving_mean = bn_layer.running_mean.detach().cpu().numpy()
+            moving_variance = bn_layer.running_var.detach().cpu().numpy()
+            print(f"BN layer {idx} gamma shape: {gamma.shape}, mean: {gamma.mean():.4f}, std: {gamma.std():.4f}")
+            print(f"BN layer {idx} beta shape: {beta.shape}, mean: {beta.mean():.4f}, std: {beta.std():.4f}")
+            print(f"BN layer {idx} moving_mean shape: {moving_mean.shape}, mean: {moving_mean.mean():.4f}, std: {moving_mean.std():.4f}")
+            print(f"BN layer {idx} moving_variance shape: {moving_variance.shape}, mean: {moving_variance.mean():.4f}, std: {moving_variance.std():.4f}")
 
     # -------------------------------------------------------
     # Test Input/Output Characteristics
     # -------------------------------------------------------
     batch_size = 32
-    input_dim = mock_config['eqn_config']['dim']
+    input_dim = mock_config['equation_config']['dim']
     test_input_data = np.tile(np.linspace(0, 1, input_dim), (batch_size, 1)).astype(np.float32)
     print("\nInput Data Characteristics:")
     print(f"Input shape: {test_input_data.shape}")
@@ -249,11 +256,12 @@ if __name__ == "__main__":
         total_params += params_count
         print(f"Dense layer {idx}: parameter count={params_count}")
     for idx, bn_layer in enumerate(net.bn_layers):
-        params_count = sum(p.numel() for p in bn_layer.parameters())
-        # BN also has running_mean/var which are buffers (not parameters)
-        # but to keep it similar to TF code, we only count parameters (weight, bias)
-        total_params += params_count
-        print(f"BN layer {idx}: parameter count={params_count}")
+        if bn_layer is not None:
+            params_count = sum(p.numel() for p in bn_layer.parameters())
+            # BN also has running_mean/var which are buffers (not parameters)
+            # but to keep it similar to TF code, we only count parameters (weight, bias)
+            total_params += params_count
+            print(f"BN layer {idx}: parameter count={params_count}")
     print(f"Total trainable parameters (including BN): {total_params}")
 
     # -------------------------------------------------------
