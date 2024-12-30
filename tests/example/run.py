@@ -50,9 +50,9 @@ def main(argv):
             "batch_size": 64,
             "valid_size": 256,
             "lr_start_value": 1e-2,
-            "lr_decay_rate": 0.5,
-            "lr_boundaries": [1000, 2000, 3000],
-            "num_iterations": 5000,
+            "lr_decay_rate": 0.1,
+            "lr_boundaries": [2600, 4100, 5100],
+            "num_iterations": 6000,
             "logging_frequency": 100,
             "negative_loss_penalty": 0.0,
             "delta_clip": 50,
@@ -82,6 +82,8 @@ def main(argv):
     # # Initialize and train BSDE solver
     bsde_solver = BSDESolver(config, bsde, device=device, dtype=dtype)
     bsde_solver.train()
+    bsde_solver.save_results()
+    bsde_solver.plot_training_history()
 
 
 if __name__ == '__main__':
