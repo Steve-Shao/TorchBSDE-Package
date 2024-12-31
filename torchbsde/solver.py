@@ -339,9 +339,15 @@ class BSDESolver:
         Saves the current config dictionary to config.json in the experiment directory.
         Also extracts relevant subconfigs for solver usage.
         """
+        # Convert numpy arrays to lists for JSON serialization
+        config_to_save = self.config.copy()
+        for key, value in config_to_save.get('equation_config', {}).items():
+            if isinstance(value, np.ndarray):
+                config_to_save['equation_config'][key] = value.tolist()
+
         config_path = os.path.join(self.exp_dir, 'config.json')
         with open(config_path, 'w') as f:
-            json.dump(self.config, f, indent=4)
+            json.dump(config_to_save, f, indent=4)
         self.logger.info(f"Configuration saved to {config_path}")
 
 
@@ -388,17 +394,11 @@ class BSDESolver:
             dw = torch.tensor(dw, dtype=self.dtype, device=self.device)
             x = torch.tensor(x, dtype=self.dtype, device=self.device)
 
-            # 2. Perform a single training step
-            self._train_step(dw, x)
-
-            # 3. Step the LR scheduler if it exists
-            if self.lr_scheduler:
-                self.lr_scheduler.step()
-
-            # 4. Logging & validation at specified intervals
+            # 2. Logging & validation at specified intervals
             if step % self.solver_config['logging_frequency'] == 0:
                 with torch.no_grad():
-                    val_loss = self.loss_fn(valid_dw, valid_x, training=False).item()
+                    train_loss, train_squared_loss = self.loss_fn(dw, x, training=True)
+                    val_loss, val_squared_loss = self.loss_fn(valid_dw, valid_x, training=False)
                     y_init_val = self.y_init(valid_x[:, :, 0], training=False)
                     y_init = y_init_val.data.cpu().numpy().mean()
                     current_lr = self.optimizer.param_groups[0]['lr']
@@ -406,8 +406,8 @@ class BSDESolver:
 
                     training_history.append([
                         step,
-                        float('nan'),  # train_loss not measured in "eval" pass
-                        val_loss,
+                        train_squared_loss,
+                        val_squared_loss,
                         y_init,
                         current_lr,
                         elapsed_time
@@ -415,23 +415,30 @@ class BSDESolver:
 
                     if self.solver_config.get('verbose', False):
                         self.logger.info(
-                            f"step: {step:5}, val loss: {val_loss:.6f}, "
+                            f"step: {step:5}, val loss: {val_squared_loss:.6f}, "
                             f"Y0: {y_init:.6f}, lr: {current_lr:.6f}, "
                             f"elapsed time: {int(elapsed_time)}"
                         )
             else:
                 # Record train_loss for steps not logged as validation steps
-                train_loss = self.loss_fn(dw, x, training=True).item()
+                train_loss, train_squared_loss = self.loss_fn(dw, x, training=True)
                 current_lr = self.optimizer.param_groups[0]['lr']
                 elapsed_time = time.time() - start_time
                 training_history.append([
                     step,
-                    train_loss,
+                    train_squared_loss,
                     float('nan'),
                     float('nan'),
                     current_lr,
                     elapsed_time
                 ])
+
+            # 3. Perform a single training step
+            self._train_step(dw, x)
+
+            # 4. Step the LR scheduler if it exists
+            if self.lr_scheduler:
+                self.lr_scheduler.step()
 
         # Convert history to numpy and store it
         self.training_history = np.array(training_history)
@@ -448,7 +455,7 @@ class BSDESolver:
             dw (torch.Tensor): Brownian increments (batch)
             x  (torch.Tensor): State process (batch)
         """
-        loss = self.loss_fn(dw, x, training=True)
+        loss, plain_loss = self.loss_fn(dw, x, training=True)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -470,6 +477,7 @@ class BSDESolver:
 
         Returns:
             torch.Tensor: The scalar loss.
+            float: The plain squared loss without clipping or penalties.
         """
         # Forward pass: model returns (predicted terminal value, negative_loss)
         y_terminal, negative_loss = self.model((dw, x), training)
@@ -483,6 +491,9 @@ class BSDESolver:
         # Compute delta = prediction - true_value
         delta = y_terminal - g_terminal
         abs_delta = torch.abs(delta)
+
+        # Calculate plain squared loss
+        plain_squared_loss = torch.mean(delta**2).item()
 
         # Mask for deltas within the clipping threshold
         mask = abs_delta < self.delta_clip
@@ -499,7 +510,7 @@ class BSDESolver:
 
         # Add penalty for negative output if needed
         loss += self.negative_loss_penalty * negative_loss
-        return loss
+        return loss, plain_squared_loss
 
     # =====================================================================
     #                       SAVING AND PLOTTING
@@ -516,7 +527,7 @@ class BSDESolver:
         This should be called periodically or after training completes.
         """
         self.logger.info("========== Saving Results ==========")
-        
+
         # Save training history
         if hasattr(self, 'training_history'):
             history_path = os.path.join(self.exp_dir, 'training_history.csv')
@@ -622,6 +633,54 @@ class BSDESolver:
         plt.show()
 
         self.logger.info(f"Training history plot saved to {plot_path}")
+
+    def plot_y0_history(self, filename='training_history.csv'):
+        """
+        Plots the Y0 (initial value) vs. steps.
+        
+        Args:
+            filename (str): CSV filename in the experiment directory containing 
+                            training history to plot.
+        """
+        csv_path = os.path.join(self.exp_dir, filename)
+        if not os.path.exists(csv_path):
+            self.logger.error("Training history CSV file not found. Please run training first.")
+            return
+
+        df = pd.read_csv(csv_path)
+
+        # Get Y0 values, dropping NaN values
+        y0_df = df[['step', 'y0']].dropna()
+
+        # Plot setup
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(y0_df['step'], y0_df['y0'], label='Y0')
+
+        # Identify learning-rate change steps
+        lr_changes = df[df['learning_rate'].diff() != 0]
+
+        # Plot vertical lines at LR change steps
+        y_min, y_max = ax.get_ylim()
+        step_range = df['step'].max() - df['step'].min()
+        offset = step_range * 0.01  # offset for text placement
+        for _, row in lr_changes.iterrows():
+            ax.axvline(x=row['step'], color='red', linestyle='--', alpha=0.7)
+            ax.text(row['step'] + offset, y_max - offset,
+                    f"LR: {row['learning_rate']:.3g}",
+                    rotation=0, verticalalignment='top', color='red', fontsize=9)
+
+        ax.set_xlabel('Step')
+        ax.set_ylabel('Y0')
+        ax.set_title('Initial Value (Y0) with Learning Rate Changes')
+        ax.legend()
+        plt.tight_layout()
+
+        # Save and show plot
+        plot_path = os.path.join(self.exp_dir, 'y0_history.png')
+        plt.savefig(plot_path)
+        plt.show()
+
+        self.logger.info(f"Y0 history plot saved to {plot_path}")
 
 
 # =====================================================================
