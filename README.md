@@ -38,7 +38,7 @@ pip install git+https://github.com/steve-shao/TorchBSDE-Package.git
 ## Training
 
 ```
-python -m tests.solve_equation --config_path=configs/hjb_lq_d100.json
+python -m tests.run_from_config --config_path=configs/hjb_lq_d100.json
 ```
 
 Command-line flags:

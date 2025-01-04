@@ -115,21 +115,17 @@ class NonsharedModel(nn.Module):
 
         dw, x = inputs
         time_stamp = torch.arange(0, self.equation_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
-        y = self.y_init(x[:, :, 0], training) # / self.bsde.dim
+        y = self.y_init(x[:, :, 0], training) # / self.bsde.dim # (this is an enginnering trick used my Han et al.)
         negative_loss = self.calculate_negative_loss(y)
 
         # Forward propagation through time steps
         for t in range(0, self.bsde.num_time_interval):
-            z = self.subnet[t](x[:, :, t], training) / self.bsde.dim
+            z = self.subnet[t](x[:, :, t], training) # / self.bsde.dim # (this is an enginnering trick used my Han et al.)
             negative_loss += self.calculate_negative_loss(z)
 
             y = y - self.bsde.delta_t * (
                 self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z)
             ) + torch.sum(z * dw[:, :, t], 1, keepdim=True)
-
-        # WHAT IS THIS `/ self.bsde.dim` DOING?
-        # WHAT IS THIS `/ self.bsde.dim` DOING?
-        # WHAT IS THIS `/ self.bsde.dim` DOING?
 
         return y, negative_loss
 

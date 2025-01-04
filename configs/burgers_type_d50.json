@@ -10,14 +10,14 @@
     "use_bn_input": true,
     "use_bn_hidden": true,
     "use_bn_output": true,
-    "use_shallow_y_init": true,
+    "use_shallow_y_init": false,
     "y_init_range": [2, 4],
     "num_hiddens": [60, 60]
   },
   "solver_config": {
     "batch_size": 64,
     "valid_size": 256,
-    "lr_start_value": 1e-2,
+    "lr_start_value": 1e-3,
     "lr_decay_rate": 0.1,
     "lr_boundaries": [15000, 25000],
     "num_iterations": 30000,

@@ -66,6 +66,8 @@ def main(argv):
     # Initialize and train BSDE solver
     bsde_solver = BSDESolver(config, bsde, device=device, dtype=dtype)
     bsde_solver.train()
+    bsde_solver.save_results()
+    bsde_solver.plot_training_history()
 
 
 if __name__ == '__main__':
