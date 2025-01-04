@@ -25,7 +25,7 @@ class BurgersType(Equation):
         return dw_sample, x_sample
 
     def f_torch(self, t, x, y, z):
-        return (y - (2 + self.dim) / 2.0 / self.dim) * torch.sum(z, dim=1, keepdim=True)
+        return (y - (2 + self.dim) / 2.0 / self.dim) * torch.sum(z * self.sigma, dim=1, keepdim=True)
 
     def g_torch(self, t, x):
         return 1 - 1.0 / (1 + torch.exp(t + torch.sum(x, dim=1, keepdim=True) / self.dim))

@@ -71,7 +71,7 @@ class HJBLQ(Equation):
             torch.Tensor: Value of the driver function
         """
         # Hamiltonian term: -λ|z|²/2
-        return -self.lambd * torch.sum(torch.square(z), dim=1, keepdim=True) / 2
+        return -self.lambd * torch.sum(torch.square(z * self.sigma), dim=1, keepdim=True) / 2
 
     def g_torch(self, t, x):
         """Implements the terminal condition of the PDE.

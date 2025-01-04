@@ -37,6 +37,12 @@ class NonsharedModel(nn.Module):
         self.bsde = bsde
         self.device = device if device else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.dtype = dtype if dtype else torch.float32
+
+        # Get sigma from bsde or set to 1 if not found
+        self.sigma = getattr(self.bsde, 'sigma', 1)
+        # Reshape scalar sigma into diagonal matrix if it's a scalar
+        if isinstance(self.sigma, (int, float, np.floating, np.integer)):
+            self.sigma = self.sigma * torch.eye(self.equation_config['dim'], device=self.device, dtype=self.dtype)
         
         # ========== THIS PREVIOUS IMPLEMENTATION ASSUMES X0 IS CONSTANT ========== #
 
@@ -125,7 +131,7 @@ class NonsharedModel(nn.Module):
 
             y = y - self.bsde.delta_t * (
                 self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z)
-            ) + torch.sum(z * dw[:, :, t], 1, keepdim=True)
+            ) + torch.sum(torch.matmul(z, self.sigma) * dw[:, :, t], 1, keepdim=True)
 
         return y, negative_loss
 

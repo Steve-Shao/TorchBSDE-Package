@@ -28,7 +28,7 @@ class PricingDiffRate(Equation):
         return dw_sample, x_sample
 
     def f_torch(self, t, x, y, z):
-        temp = torch.sum(z, dim=1, keepdim=True) / self.sigma
+        temp = torch.sum(z * self.sigma, dim=1, keepdim=True) / self.sigma
         return -self.rl * y - (self.mu_bar - self.rl) * temp + (
             (self.rb - self.rl) * torch.clamp(temp - y, min=0))
 
