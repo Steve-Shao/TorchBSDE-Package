@@ -41,19 +41,21 @@ def main(argv):
         },
         "network_config": {
             "use_bn_input": True,
-            "use_bn_hidden": True,
-            "use_bn_output": True,
-            "use_shallow_y_init": True,
+            "use_bn_hidden": False,
+            "use_bn_output": False,
+            "use_shallow_y_init": False,
             "num_hiddens": [110, 110]
         },
         "solver_config": {
             "batch_size": 64,
             "valid_size": 256,
+            "lr_scheduler": "reduce_on_plateau",
             "lr_start_value": 1e-2,
-            "lr_decay_rate": 0.1,
+            "plateau_patience": 10, 
+            "lr_decay_rate": 0.5,
+            "num_iterations": 300,
             "lr_boundaries": [2600, 4100, 5100],
-            "num_iterations": 6000,
-            "logging_frequency": 100,
+            "logging_frequency": 10,
             "negative_loss_penalty": 0.0,
             "delta_clip": 50,
             "verbose": True,
@@ -83,7 +85,9 @@ def main(argv):
     bsde_solver = BSDESolver(config, bsde, device=device, dtype=dtype)
     bsde_solver.train()
     bsde_solver.save_results()
+    bsde_solver.plot_y0_history()
     bsde_solver.plot_training_history()
+    # bsde_solver.model.plot_subnet_gradients()
 
 
 if __name__ == '__main__':

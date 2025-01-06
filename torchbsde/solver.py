@@ -62,10 +62,10 @@ class BSDESolver:
         # No existing experiment: setup fresh
         self._create_experiment_directory()
         self._initialize_logger()
-
         self._extract_subconfigs()
         self._initialize_model()
         self._initialize_optimizer_and_scheduler()
+
         self.training_start_step = 0 
 
         # Existing experiment found: validate config and load everything
@@ -160,22 +160,39 @@ class BSDESolver:
             eps=1e-8
         )
 
-        # Initialize LR scheduler if milestones are provided
-        lr_boundaries = self.solver_config.get('lr_boundaries', [])
-        if lr_boundaries:
-            decay_rate = self.solver_config['lr_decay_rate']
-            self.lr_scheduler = optim.lr_scheduler.MultiStepLR(
+        # Get scheduler type from config
+        self.lr_scheduler_type = self.config['solver_config'].get("lr_scheduler", "manual")
+        
+        # Initialize LR scheduler based on the scheduler type
+        if self.lr_scheduler_type == "manual":
+            lr_boundaries = self.solver_config.get('lr_boundaries', [])
+            if lr_boundaries:
+                decay_rate = self.solver_config['lr_decay_rate']
+                self.lr_scheduler = optim.lr_scheduler.MultiStepLR(
+                    self.optimizer,
+                    milestones=lr_boundaries,
+                    gamma=decay_rate
+                )
+                self.logger.info(
+                    f"Manual LR scheduler initialized with milestones {lr_boundaries} "
+                    f"and gamma {decay_rate}"
+                )
+            else:
+                self.lr_scheduler = None
+                self.logger.info("Manual LR scheduler not initialized due to empty lr_boundaries.")
+        elif self.lr_scheduler_type == "reduce_on_plateau":
+            self.lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
-                milestones=lr_boundaries,
-                gamma=decay_rate
+                mode = 'min',
+                factor = self.solver_config['lr_decay_rate'],
+                patience = self.solver_config['plateau_patience'],
+                cooldown = 10, 
+                min_lr = 1e-5, 
+                verbose = True
             )
-            self.logger.info(
-                f"LR scheduler initialized with milestones {lr_boundaries} "
-                f"and gamma {decay_rate}"
-            )
+            self.logger.info("ReduceLROnPlateau scheduler initialized.")
         else:
-            self.lr_scheduler = None
-            self.logger.info("LR scheduler not initialized due to empty lr_boundaries.")
+            raise ValueError(f"Unsupported lr_scheduler type: {self.lr_scheduler_type}")
 
     # =====================================================================
     #                 LOADING EXISTING EXPERIMENT METHODS
@@ -308,25 +325,26 @@ class BSDESolver:
             self.lr_scheduler.load_state_dict(scheduler_state)
             self.logger.info(f"LR scheduler loaded from {scheduler_path}")
             
-            # Process new learning rate boundaries if any exist
-            new_boundaries = self.solver_config.get('lr_boundaries', [])
-            if new_boundaries:
-                current_milestones = self.lr_scheduler.milestones
-                
-                # Validate existing milestones
-                old_boundaries = [b for b in new_boundaries if b <= self.training_start_step]
-                old_milestones = {k: v for k, v in current_milestones.items() 
-                                if k <= self.training_start_step}
-                
-                if set(old_boundaries) != set(old_milestones.keys()):
-                    raise ValueError("Mismatch between old milestones in saved scheduler and current config")
-                
-                # Add any new milestone boundaries
-                new_steps = [b for b in new_boundaries if b > self.training_start_step and b not in current_milestones]
-                if new_steps:
-                    for step in new_steps:
-                        self.lr_scheduler.milestones[step] = self.lr_scheduler.milestones.get(step, 0) + 1
-                    self.logger.info(f"Added new milestones: {new_steps}")
+            if self.lr_scheduler_type == "manual": 
+                # Process new learning rate boundaries if any exist
+                new_boundaries = self.solver_config.get('lr_boundaries', [])
+                if new_boundaries:
+                    current_milestones = self.lr_scheduler.milestones
+                    
+                    # Validate existing milestones
+                    old_boundaries = [b for b in new_boundaries if b <= self.training_start_step]
+                    old_milestones = {k: v for k, v in current_milestones.items() 
+                                    if k <= self.training_start_step}
+                    
+                    if set(old_boundaries) != set(old_milestones.keys()):
+                        raise ValueError("Mismatch between old milestones in saved scheduler and current config")
+                    
+                    # Add any new milestone boundaries
+                    new_steps = [b for b in new_boundaries if b > self.training_start_step and b not in current_milestones]
+                    if new_steps:
+                        for step in new_steps:
+                            self.lr_scheduler.milestones[step] = self.lr_scheduler.milestones.get(step, 0) + 1
+                        self.logger.info(f"Added new milestones: {new_steps}")
                 
         elif self.lr_scheduler is not None:
             self.logger.info("LR scheduler state file not found. Using freshly initialized scheduler.")
@@ -416,9 +434,13 @@ class BSDESolver:
                     if self.solver_config.get('verbose', False):
                         self.logger.info(
                             f"step: {step:5}, val loss: {val_squared_loss:.6f}, "
-                            f"Y0: {y_init:.6f}, lr: {current_lr:.6f}, "
-                            f"elapsed time: {int(elapsed_time)}"
+                            f"Y0: {y_init:.6f}, lr: {current_lr:.6f}"
+                            # f"elapsed time: {int(elapsed_time)}"
                         )
+                # 4. Step the LR scheduler based on the scheduler type
+                if self.lr_scheduler:
+                    if self.lr_scheduler_type == "reduce_on_plateau":
+                        self.lr_scheduler.step(val_loss)
             else:
                 # Record train_loss for steps not logged as validation steps
                 train_loss, train_squared_loss = self.loss_fn(dw, x, training=True)
@@ -436,9 +458,10 @@ class BSDESolver:
             # 3. Perform a single training step
             self._train_step(dw, x)
 
-            # 4. Step the LR scheduler if it exists
+            # 4. Step the LR scheduler based on the scheduler type
             if self.lr_scheduler:
-                self.lr_scheduler.step()
+                if self.lr_scheduler_type == "manual":
+                    self.lr_scheduler.step()
 
         # Convert history to numpy and store it
         self.training_history = np.array(training_history)
@@ -559,7 +582,7 @@ class BSDESolver:
         except Exception as e:
             self.logger.error(f"Failed to save optimizer state: {e}")
 
-        # Save scheduler state if it exists
+        # Save scheduler state based on the scheduler type
         if self.lr_scheduler:
             try:
                 scheduler_path = os.path.join(self.exp_dir, 'scheduler.pth')
@@ -617,9 +640,9 @@ class BSDESolver:
         offset = step_range * 0.01  # offset for text placement
         for _, row in lr_changes.iterrows():
             ax.axvline(x=row['step'], color='red', linestyle='--', alpha=0.7)
-            ax.text(row['step'] + offset, y_max - offset,
+            ax.text(row['step'], y_max - offset,
                     f"LR: {row['learning_rate']:.3g}",
-                    rotation=0, verticalalignment='top', color='red', fontsize=9)
+                    rotation=270, verticalalignment='top', color='red', fontsize=9)
 
         ax.set_xlabel('Step')
         ax.set_ylabel('Loss')
@@ -630,7 +653,7 @@ class BSDESolver:
         # Save and show plot
         plot_path = os.path.join(self.exp_dir, 'training_history.png')
         plt.savefig(plot_path)
-        plt.show()
+        plt.close()
 
         self.logger.info(f"Training history plot saved to {plot_path}")
 
@@ -678,7 +701,7 @@ class BSDESolver:
         # Save and show plot
         plot_path = os.path.join(self.exp_dir, 'y0_history.png')
         plt.savefig(plot_path)
-        plt.show()
+        plt.close()
 
         self.logger.info(f"Y0 history plot saved to {plot_path}")
 
