@@ -185,10 +185,11 @@ class BSDESolver:
                 self.optimizer,
                 mode = 'min',
                 factor = self.solver_config['lr_decay_rate'],
-                patience = self.solver_config['plateau_patience'],
+                patience = self.solver_config['plateau_patience'], 
+                threshold = 1e-3,
+                threshold_mode = 'rel',
                 cooldown = 10, 
-                min_lr = 1e-5, 
-                verbose = True
+                min_lr = 1e-5
             )
             self.logger.info("ReduceLROnPlateau scheduler initialized.")
         else:
@@ -246,9 +247,9 @@ class BSDESolver:
                             f"input value {input_solver_config[key]}"
                         )
 
-        # 2. Check equation_config
-        if saved_config.get('equation_config') != input_config.get('equation_config'):
-            raise ValueError("Mismatch in equation_config between saved config and input config.")
+        # # 2. Check equation_config
+        # if saved_config.get('equation_config') != input_config.get('equation_config'):
+        #     raise ValueError("Mismatch in equation_config between saved config and input config.")
 
         # 3. Check network_config
         if saved_config.get('network_config') != input_config.get('network_config'):

@@ -177,20 +177,21 @@ class NonsharedModel(nn.Module):
             sample_dw = torch.tensor(sample_dw, dtype=self.dtype, device=self.device)
             sample_x = torch.tensor(sample_x, dtype=self.dtype, device=self.device)
 
-            # Initialize a list to store subnet outputs for each dimension
-            subnet_outputs = [[] for _ in range(self.bsde.dim)]
+            # Initialize tensor to store subnet outputs
+            subnet_outputs = torch.zeros((self.bsde.dim, num_samples, self.bsde.num_time_interval), 
+                                      dtype=self.dtype, device=self.device)
 
             # Iterate over each time step and collect subnet outputs
-            for t in range(self.subnet.__len__()):
+            for t in range(self.bsde.num_time_interval):
                 input_x_t = sample_x[:, :, t]
                 output_z = self.subnet[t](input_x_t, training=False)  # Shape: (num_samples, dim)
-                output_z = output_z.cpu().numpy()
-                for dim_idx in range(self.bsde.dim):
-                    subnet_outputs[dim_idx].append(output_z[:, dim_idx])
-
+                subnet_outputs[:, :, t] = output_z.t().cpu()  # Transpose to get (dim, num_samples)
+    
             # Time steps for plotting
-            time_steps = np.linspace(0, self.bsde.total_time,
-                                   self.bsde.num_time_interval)
+            time_steps = np.linspace(0, self.bsde.total_time, self.bsde.num_time_interval)
+
+            # Ensure time_steps length matches subnet_outputs
+            assert len(time_steps) == self.bsde.num_time_interval, "Time steps length mismatch"
 
             # Create plot
             fig, axes = plt.subplots(self.bsde.dim, 1, figsize=(8, 1.5 * self.bsde.dim), sharex=True)
@@ -198,9 +199,11 @@ class NonsharedModel(nn.Module):
             if self.bsde.dim == 1:
                 axes = [axes]
 
+            subnet_outputs = subnet_outputs.cpu().numpy()
             for dim_idx in range(self.bsde.dim):
                 for sample_idx in range(num_samples):
-                    axes[dim_idx].plot(time_steps, subnet_outputs[dim_idx][sample_idx], alpha=0.6)
+                    y_values = subnet_outputs[dim_idx, sample_idx, :]
+                    axes[dim_idx].plot(time_steps, y_values, alpha=0.6)
                 axes[dim_idx].set_ylabel(f'Dimension {dim_idx + 1}')
                 axes[dim_idx].grid(True)
 
