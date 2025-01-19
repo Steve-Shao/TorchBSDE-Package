@@ -172,10 +172,9 @@ class NonsharedModel(nn.Module):
         with torch.no_grad():
             # Generate sample input data from bsde
             num_samples = 20
-            sample_data = self.bsde.sample(num_samples)
-            sample_dw, sample_x = sample_data
-            sample_dw = torch.tensor(sample_dw, dtype=self.dtype, device=self.device)
-            sample_x = torch.tensor(sample_x, dtype=self.dtype, device=self.device)
+            sample_dw, sample_x = self.bsde.sample(num_samples)
+            sample_dw = sample_dw.to(dtype=self.dtype, device=self.device)
+            sample_x = sample_x.to(dtype=self.dtype, device=self.device)
 
             # Initialize tensor to store subnet outputs
             subnet_outputs = torch.zeros((self.bsde.dim, num_samples, self.bsde.num_time_interval), 

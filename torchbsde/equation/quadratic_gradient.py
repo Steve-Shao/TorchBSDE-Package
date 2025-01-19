@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from .base import Equation
@@ -12,17 +11,18 @@ class QuadraticGradient(Equation):
     def __init__(self, eqn_config, device=None, dtype=None):
         super(QuadraticGradient, self).__init__(eqn_config, device=device, dtype=dtype)
         self.alpha = 0.4
-        self.x_init = np.zeros(self.dim)
-        base = self.total_time + np.sum(np.square(self.x_init) / self.dim)
-        self.y_init = np.sin(np.power(base, self.alpha))
+        self.x_init = torch.zeros(self.dim, device=self.device, dtype=self.dtype)
+        base = self.total_time + torch.sum(torch.square(self.x_init) / self.dim)
+        self.y_init = torch.sin(torch.pow(base, self.alpha))
 
     def sample(self, num_sample):
-        dw_sample = np.random.normal(size=[num_sample, self.dim, self.num_time_interval]) * self.sqrt_delta_t
-        x_sample = np.zeros([num_sample, self.dim, self.num_time_interval + 1])
-        x_sample[:, :, 0] = np.ones([num_sample, self.dim]) * self.x_init
-        for i in range(self.num_time_interval):
-            x_sample[:, :, i + 1] = x_sample[:, :, i] + dw_sample[:, :, i]
-        return dw_sample, x_sample
+        with torch.no_grad():
+            dw_sample = torch.randn(num_sample, self.dim, self.num_time_interval, device=self.device, dtype=self.dtype) * self.sqrt_delta_t
+            x_sample = torch.zeros(num_sample, self.dim, self.num_time_interval + 1, device=self.device, dtype=self.dtype)
+            x_sample[:, :, 0] = self.x_init.expand(num_sample, self.dim)
+            for i in range(self.num_time_interval):
+                x_sample[:, :, i + 1] = x_sample[:, :, i] + dw_sample[:, :, i]
+            return dw_sample, x_sample
 
     def f_torch(self, t, x, y, z):
         x_square = torch.sum(torch.square(x), dim=1, keepdim=True)

@@ -399,24 +399,22 @@ class BSDESolver:
 
         # Prepare validation data
         valid_size = self.solver_config['valid_size']
-        valid_data = self.bsde.sample(valid_size)
-        valid_dw, valid_x = valid_data
-        valid_dw = torch.tensor(valid_dw, dtype=self.dtype, device=self.device)
-        valid_x = torch.tensor(valid_x, dtype=self.dtype, device=self.device)
+        valid_dw, valid_x = self.bsde.sample(valid_size)
+        valid_dw = valid_dw.to(dtype=self.dtype, device=self.device)
+        valid_x = valid_x.to(dtype=self.dtype, device=self.device)
 
         # Main training loop
         total_steps = self.solver_config['num_iterations']
         for step in range(self.training_start_step, total_steps + 1):
             # 1. Sample a training batch
-            train_data = self.bsde.sample(self.solver_config['batch_size'])
-            dw, x = train_data
-            dw = torch.tensor(dw, dtype=self.dtype, device=self.device)
-            x = torch.tensor(x, dtype=self.dtype, device=self.device)
+            train_dw, train_x = self.bsde.sample(self.solver_config['batch_size'])
+            train_dw = train_dw.to(dtype=self.dtype, device=self.device)
+            train_x = train_x.to(dtype=self.dtype, device=self.device)
 
             # 2. Logging & validation at specified intervals
             if step % self.solver_config['logging_frequency'] == 0:
                 with torch.no_grad():
-                    train_loss, train_squared_loss = self.loss_fn(dw, x, training=True)
+                    train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, training=True)
                     val_loss, val_squared_loss = self.loss_fn(valid_dw, valid_x, training=False)
                     y_init_val = self.y_init(valid_x[:, :, 0], training=False)
                     y_init = y_init_val.data.cpu().numpy().mean()
@@ -444,7 +442,7 @@ class BSDESolver:
                         self.lr_scheduler.step(val_loss)
             else:
                 # Record train_loss for steps not logged as validation steps
-                train_loss, train_squared_loss = self.loss_fn(dw, x, training=True)
+                train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, training=True)
                 current_lr = self.optimizer.param_groups[0]['lr']
                 elapsed_time = time.time() - start_time
                 training_history.append([
@@ -457,7 +455,7 @@ class BSDESolver:
                 ])
 
             # 3. Perform a single training step
-            self._train_step(dw, x)
+            self._train_step(train_dw, train_x)
 
             # 4. Step the LR scheduler based on the scheduler type
             if self.lr_scheduler:

@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from .base import Equation
@@ -11,7 +10,7 @@ class PricingDiffRate(Equation):
     """
     def __init__(self, eqn_config, device=None, dtype=None):
         super(PricingDiffRate, self).__init__(eqn_config, device=device, dtype=dtype)
-        self.x_init = np.ones(self.dim) * 100
+        self.x_init = torch.ones(self.dim, device=self.device, dtype=self.dtype) * 100
         self.sigma = 0.2
         self.mu_bar = 0.06
         self.rl = 0.04
@@ -19,13 +18,14 @@ class PricingDiffRate(Equation):
         self.alpha = 1.0 / self.dim
 
     def sample(self, num_sample):
-        dw_sample = np.random.normal(size=[num_sample, self.dim, self.num_time_interval]) * self.sqrt_delta_t
-        x_sample = np.zeros([num_sample, self.dim, self.num_time_interval + 1])
-        x_sample[:, :, 0] = np.ones([num_sample, self.dim]) * self.x_init
-        factor = np.exp((self.mu_bar-(self.sigma**2)/2)*self.delta_t)
-        for i in range(self.num_time_interval):
-            x_sample[:, :, i + 1] = (factor * np.exp(self.sigma * dw_sample[:, :, i])) * x_sample[:, :, i]
-        return dw_sample, x_sample
+        with torch.no_grad():
+            dw_sample = torch.randn(num_sample, self.dim, self.num_time_interval, device=self.device, dtype=self.dtype) * self.sqrt_delta_t
+            x_sample = torch.zeros(num_sample, self.dim, self.num_time_interval + 1, device=self.device, dtype=self.dtype)
+            x_sample[:, :, 0] = self.x_init.expand(num_sample, self.dim)
+            factor = torch.exp(torch.tensor(self.mu_bar - (self.sigma**2)/2, device=self.device, dtype=self.dtype) * self.delta_t)
+            for i in range(self.num_time_interval):
+                x_sample[:, :, i + 1] = (factor * torch.exp(self.sigma * dw_sample[:, :, i])) * x_sample[:, :, i]
+            return dw_sample, x_sample
 
     def f_torch(self, t, x, y, z):
         temp = torch.sum(z * self.sigma, dim=1, keepdim=True) / self.sigma
