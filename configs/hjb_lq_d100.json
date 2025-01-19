@@ -11,7 +11,9 @@
     "use_bn_hidden": false,
     "use_bn_output": false,
     "use_shallow_y_init": false,
-    "num_hiddens": [110, 110]
+    "num_hiddens": [110, 110],
+    "activation_function": "LeakyReLU", 
+    "careful_nn_initialization": false
   },
   "solver_config": {
     "batch_size": 64,

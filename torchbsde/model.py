@@ -166,7 +166,7 @@ class NonsharedModel(nn.Module):
         Plots sample paths of the gradient subnet outputs over time.
         
         Args:
-            filename (str): Filename to save the plot in the experiment directory.
+            filename (str): Filename to save the all-in-one plot in the experiment directory.
         """
         self.eval()  # Ensure the model is in evaluation mode
         with torch.no_grad():
@@ -193,7 +193,7 @@ class NonsharedModel(nn.Module):
             # Ensure time_steps length matches subnet_outputs
             assert len(time_steps) == self.bsde.num_time_interval, "Time steps length mismatch"
 
-            # Create plot
+            # Create all-in-one plot
             fig, axes = plt.subplots(self.bsde.dim, 1, figsize=(8, 1.5 * self.bsde.dim), sharex=True)
 
             if self.bsde.dim == 1:
@@ -210,10 +210,29 @@ class NonsharedModel(nn.Module):
             axes[-1].set_xlabel('Time')
             plt.tight_layout()
 
-            # Save plot
+            # Save all-in-one plot
             plot_path = os.path.join(self.exp_dir, filename)
             plt.savefig(plot_path)
             plt.close()
+        
+            # Create subfolder for individual subnet plots
+            subfolder = os.path.join(self.exp_dir, 'subnet_gradients')
+            os.makedirs(subfolder, exist_ok=True)
+
+            # Iterate over each subnet to create and save individual plots
+            for dim_idx in range(self.bsde.dim):
+                fig, ax = plt.subplots(figsize=(8, 4))
+                for sample_idx in range(num_samples):
+                    y_values = subnet_outputs[dim_idx, sample_idx, :]
+                    ax.plot(time_steps, y_values, alpha=0.6)
+                ax.set_ylabel(f'Dimension {dim_idx + 1}')
+                ax.set_xlabel('Time')
+                ax.set_title(f'Subnet Gradient - Dimension {dim_idx + 1}')
+                ax.grid(True)
+                individual_plot_path = os.path.join(subfolder, f'subnet_gradient_dim_{dim_idx + 1}.png')
+                plt.tight_layout()
+                plt.savefig(individual_plot_path)
+                plt.close()
 
 
 if __name__ == '__main__':

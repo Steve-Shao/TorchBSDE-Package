@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 
 class FeedForwardSubNet(nn.Module):
@@ -66,6 +67,27 @@ class FeedForwardSubNet(nn.Module):
         self.use_bn_hidden = config['network_config'].get('use_bn_hidden', True)
         self.use_bn_output = config['network_config'].get('use_bn_output', True)
         self.use_shallow_y_init = config['network_config'].get('use_shallow_y_init', True)
+        
+        # ---------------------------------------------------------------------
+        # Get careful NN initialization flag from config, default to False
+        # ---------------------------------------------------------------------
+        self.careful_nn_initialization = config['network_config'].get('careful_nn_initialization', False)
+
+        # ---------------------------------------------------------------------
+        # Set activation function
+        # ---------------------------------------------------------------------
+        activation_function_str = config['network_config'].get('activation_function', 'ReLU')
+        activation_functions = {
+            'ReLU': F.relu,
+            'LeakyReLU': F.leaky_relu,
+            'Sigmoid': torch.sigmoid,
+            'Tanh': torch.tanh,
+            'ELU': F.elu,
+            # Add more activation functions here if needed
+        }
+        if activation_function_str not in activation_functions:
+            raise ValueError(f"Invalid activation function: {activation_function_str}")
+        self.activation = activation_functions[activation_function_str]
 
         out_features = dim if is_derivative else 1
         # If not derivative, we only use the first hidden layer
@@ -126,6 +148,21 @@ class FeedForwardSubNet(nn.Module):
                     nn.init.normal_(bn_layer.bias, 0.0, 0.1)     # beta
                 # moving_mean / moving_variance handled automatically by PyTorch
 
+        # ---------------------------------------------------------------------
+        # Apply careful initialization if enabled
+        # ---------------------------------------------------------------------
+        if self.careful_nn_initialization:
+            if activation_function_str in ['ReLU', 'LeakyReLU', 'ELU']:
+                for layer in self.dense_layers:
+                    if isinstance(layer, nn.Linear):
+                        nn.init.kaiming_uniform_(layer.weight, a=math.sqrt(5), nonlinearity='relu')
+            elif activation_function_str in ['Sigmoid', 'Tanh']:
+                for layer in self.dense_layers:
+                    if isinstance(layer, nn.Linear):
+                        nn.init.xavier_uniform_(layer.weight)
+            else:
+                raise ValueError(f"Unsupported activation function for initialization: {activation_function_str}")
+
     def forward(self, x, training):
         # Handle training/eval mode
         if training:
@@ -140,7 +177,7 @@ class FeedForwardSubNet(nn.Module):
             x = self.bn_layers[0](x)
 
         # ----------------------------------------------------------
-        # 2) Hidden layers: Linear -> BN -> ReLU
+        # 2) Hidden layers: Linear -> BN -> Activation
         # ----------------------------------------------------------
         # Because we have len(num_hiddens) hidden layers, they occupy
         # bn_layers indices 1..len(num_hiddens).
@@ -148,7 +185,7 @@ class FeedForwardSubNet(nn.Module):
             x = self.dense_layers[i](x)
             if self.bn_layers[i + 1] is not None:  # i+1 for BN index in hidden
                 x = self.bn_layers[i + 1](x)
-            x = F.relu(x)
+            x = self.activation(x)  # Use variable activation function
 
         # ----------------------------------------------------------
         # 3) Final layer -> Output BN
@@ -174,7 +211,9 @@ if __name__ == "__main__":
             'use_bn_input': True,
             'use_bn_hidden': True,
             'use_bn_output': True,
-            'use_shallow_y_init': True
+            'use_shallow_y_init': True,
+            'careful_nn_initialization': True,  # Set to True to enable careful initialization
+            'activation_function': 'ReLU'      # Change as needed
         }
     }
 

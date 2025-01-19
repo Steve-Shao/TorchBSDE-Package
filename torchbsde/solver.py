@@ -316,7 +316,7 @@ class BSDESolver:
             new_num_iterations = self.solver_config['num_iterations']
             saved_num_iterations = saved_config['solver_config'].get('num_iterations', 0)
             # If the user wants to train more steps, update the saved config
-            if new_num_iterations <= saved_num_iterations:
+            if new_num_iterations < saved_num_iterations:
                 raise ValueError("New num_iterations must be greater than the saved num_iterations.")
 
         # Load scheduler state if it exists and scheduler is initialized
