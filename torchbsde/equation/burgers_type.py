@@ -22,10 +22,10 @@ class BurgersType(Equation):
             x_sample[:, :, 0] = self.x_init.expand(num_sample, self.dim)
             for i in range(self.num_time_interval):
                 x_sample[:, :, i + 1] = x_sample[:, :, i] + self.sigma * dw_sample[:, :, i]
-            return dw_sample, x_sample
+            return dw_sample, x_sample, None
 
-    def f_torch(self, t, x, y, z):
+    def f_torch(self, t, x, y, z, u, step):
         return (y - (2 + self.dim) / 2.0 / self.dim) * torch.sum(z * self.sigma, dim=1, keepdim=True)
 
-    def g_torch(self, t, x):
+    def g_torch(self, t, x, step):
         return 1 - 1.0 / (1 + torch.exp(t + torch.sum(x, dim=1, keepdim=True) / self.dim))

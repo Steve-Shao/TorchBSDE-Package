@@ -29,12 +29,12 @@ class PricingDefaultRisk(Equation):
             for i in range(self.num_time_interval):
                 x_sample[:, :, i + 1] = (1 + self.mu_bar * self.delta_t) * x_sample[:, :, i] + (
                     self.sigma * x_sample[:, :, i] * dw_sample[:, :, i])
-            return dw_sample, x_sample
+            return dw_sample, x_sample, None
 
-    def f_torch(self, t, x, y, z):
+    def f_torch(self, t, x, y, z, u, step):
         piecewise_linear = torch.relu(
             torch.relu(y - self.vh) * self.slope + self.gammah - self.gammal) + self.gammal
         return (-(1 - self.delta) * piecewise_linear - self.rate) * y
 
-    def g_torch(self, t, x):
+    def g_torch(self, t, x, step):
         return torch.min(x, dim=1, keepdim=True)[0]

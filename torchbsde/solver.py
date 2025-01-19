@@ -399,23 +399,27 @@ class BSDESolver:
 
         # Prepare validation data
         valid_size = self.solver_config['valid_size']
-        valid_dw, valid_x = self.bsde.sample(valid_size)
+        valid_dw, valid_x, valid_u = self.bsde.sample(valid_size)
         valid_dw = valid_dw.to(dtype=self.dtype, device=self.device)
         valid_x = valid_x.to(dtype=self.dtype, device=self.device)
+        if valid_u is not None:
+            valid_u = valid_u.to(dtype=self.dtype, device=self.device)
 
         # Main training loop
         total_steps = self.solver_config['num_iterations']
         for step in range(self.training_start_step, total_steps + 1):
             # 1. Sample a training batch
-            train_dw, train_x = self.bsde.sample(self.solver_config['batch_size'])
+            train_dw, train_x, train_u = self.bsde.sample(self.solver_config['batch_size']) 
             train_dw = train_dw.to(dtype=self.dtype, device=self.device)
             train_x = train_x.to(dtype=self.dtype, device=self.device)
+            if train_u is not None:
+                train_u = train_u.to(dtype=self.dtype, device=self.device)
 
             # 2. Logging & validation at specified intervals
             if step % self.solver_config['logging_frequency'] == 0:
                 with torch.no_grad():
-                    train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, training=True)
-                    val_loss, val_squared_loss = self.loss_fn(valid_dw, valid_x, training=False)
+                    train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
+                    val_loss, val_squared_loss = self.loss_fn(valid_dw, valid_x, valid_u, step, training=False)
                     y_init_val = self.y_init(valid_x[:, :, 0], training=False)
                     y_init = y_init_val.data.cpu().numpy().mean()
                     current_lr = self.optimizer.param_groups[0]['lr']
@@ -442,7 +446,7 @@ class BSDESolver:
                         self.lr_scheduler.step(val_loss)
             else:
                 # Record train_loss for steps not logged as validation steps
-                train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, training=True)
+                train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
                 current_lr = self.optimizer.param_groups[0]['lr']
                 elapsed_time = time.time() - start_time
                 training_history.append([
@@ -455,7 +459,7 @@ class BSDESolver:
                 ])
 
             # 3. Perform a single training step
-            self._train_step(train_dw, train_x)
+            self._train_step(train_dw, train_x, train_u, step)
 
             # 4. Step the LR scheduler based on the scheduler type
             if self.lr_scheduler:
@@ -465,7 +469,7 @@ class BSDESolver:
         # Convert history to numpy and store it
         self.training_history = np.array(training_history)
 
-    def _train_step(self, dw, x):
+    def _train_step(self, dw, x, u, step):
         """
         Performs one training step, consisting of:
             - Computing the loss
@@ -477,12 +481,12 @@ class BSDESolver:
             dw (torch.Tensor): Brownian increments (batch)
             x  (torch.Tensor): State process (batch)
         """
-        loss, plain_loss = self.loss_fn(dw, x, training=True)
+        loss, plain_loss = self.loss_fn(dw, x, u, step, training=True)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-    def loss_fn(self, dw, x, training):
+    def loss_fn(self, dw, x, u, step, training):
         """
         Computes the loss for a given (dw, x) pair.
         
@@ -502,12 +506,13 @@ class BSDESolver:
             float: The plain squared loss without clipping or penalties.
         """
         # Forward pass: model returns (predicted terminal value, negative_loss)
-        y_terminal, negative_loss = self.model((dw, x), training)
+        y_terminal, negative_loss = self.model((dw, x, u), step, training)
 
         # True terminal function g_terminal
         g_terminal = self.bsde.g_torch(
             torch.tensor(self.bsde.total_time, dtype=self.dtype, device=self.device),
-            x[:, :, -1]
+            x[:, :, -1],
+            step
         )
 
         # Compute delta = prediction - true_value
@@ -769,9 +774,7 @@ if __name__ == '__main__':
     # Test data generation
     print("\nGenerating test batch...")
     test_batch = bsde.sample(config['solver_config']['batch_size'])
-    test_dw, test_x = test_batch
-    test_dw = torch.tensor(test_dw, dtype=solver.dtype, device=solver.device)
-    test_x = torch.tensor(test_x, dtype=solver.dtype, device=solver.device)
+    test_dw, test_x, test_u = test_batch
     print("Sample batch shapes - dw:", test_dw.shape, "x:", test_x.shape)
 
     # Test forward pass
@@ -781,7 +784,7 @@ if __name__ == '__main__':
 
     # Test loss computation
     print("\nComputing loss...")
-    loss_val = solver.loss_fn(test_dw, test_x, training=False)
+    loss_val = solver.loss_fn(test_dw, test_x, test_u, step=0, training=False)
     print("Initial loss value:", loss_val.item())
 
     # Test full training

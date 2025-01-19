@@ -110,13 +110,14 @@ class NonsharedModel(nn.Module):
         negative_loss = torch.sum(zero_func ** 2)
         return negative_loss
 
-    def forward(self, inputs, training):
+    def forward(self, inputs, step, training):
         """Forward pass of the model.
         
         Args:
-            inputs: Tuple of (dw, x) where:
+            inputs: Tuple of (dw, x, u) where:
                 dw: Brownian increments tensor
                 x: State process tensor
+                u: Control process tensor (optional, could be None)
             training: Boolean indicating training vs inference mode
             
         Returns:
@@ -145,7 +146,7 @@ class NonsharedModel(nn.Module):
 
         # ========== WE NOW ALLOW X0 TO BE RANDOMIZED ========== #
 
-        dw, x = inputs
+        dw, x, u = inputs
         time_stamp = torch.arange(0, self.equation_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
         y = self.y_init(x[:, :, 0], training) # / self.bsde.dim # (this is an enginnering trick used my Han et al.)
         negative_loss = self.calculate_negative_loss(y)
@@ -155,9 +156,14 @@ class NonsharedModel(nn.Module):
             z = self.subnet[t](x[:, :, t], training) # / self.bsde.dim # (this is an enginnering trick used my Han et al.)
             negative_loss += self.calculate_negative_loss(z)
 
-            y = y - self.bsde.delta_t * (
-                self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z)
-            ) + torch.sum(torch.matmul(z, self.sigma[:, :, t]) * dw[:, :, t], 1, keepdim=True)
+            if u is not None:
+                y = y - self.bsde.delta_t * (
+                    self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z, u[:, :, t], step)
+                ) + torch.sum(torch.matmul(z, self.sigma[:, :, t]) * dw[:, :, t], 1, keepdim=True)
+            else:
+                y = y - self.bsde.delta_t * (
+                    self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z, None, step)
+                ) + torch.sum(torch.matmul(z, self.sigma[:, :, t]) * dw[:, :, t], 1, keepdim=True)
 
         return y, negative_loss
 
@@ -172,9 +178,11 @@ class NonsharedModel(nn.Module):
         with torch.no_grad():
             # Generate sample input data from bsde
             num_samples = 20
-            sample_dw, sample_x = self.bsde.sample(num_samples)
+            sample_dw, sample_x, sample_u = self.bsde.sample(num_samples)
             sample_dw = sample_dw.to(dtype=self.dtype, device=self.device)
             sample_x = sample_x.to(dtype=self.dtype, device=self.device)
+            if sample_u is not None:
+                sample_u = sample_u.to(dtype=self.dtype, device=self.device)
 
             # Initialize tensor to store subnet outputs
             subnet_outputs = torch.zeros((self.bsde.dim, num_samples, self.bsde.num_time_interval), 

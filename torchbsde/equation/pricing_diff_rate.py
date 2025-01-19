@@ -25,13 +25,13 @@ class PricingDiffRate(Equation):
             factor = torch.exp(torch.tensor(self.mu_bar - (self.sigma**2)/2, device=self.device, dtype=self.dtype) * self.delta_t)
             for i in range(self.num_time_interval):
                 x_sample[:, :, i + 1] = (factor * torch.exp(self.sigma * dw_sample[:, :, i])) * x_sample[:, :, i]
-            return dw_sample, x_sample
+            return dw_sample, x_sample, None
 
-    def f_torch(self, t, x, y, z):
+    def f_torch(self, t, x, y, z, u, step):
         temp = torch.sum(z * self.sigma, dim=1, keepdim=True) / self.sigma
         return -self.rl * y - (self.mu_bar - self.rl) * temp + (
             (self.rb - self.rl) * torch.clamp(temp - y, min=0))
 
-    def g_torch(self, t, x):
+    def g_torch(self, t, x, step):
         temp = torch.max(x, dim=1, keepdim=True)[0]
         return torch.clamp(temp - 120, min=0) - 2 * torch.clamp(temp - 150, min=0)

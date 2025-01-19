@@ -23,13 +23,13 @@ class ReactionDiffusion(Equation):
             x_sample[:, :, 0] = self.x_init.expand(num_sample, self.dim)
             for i in range(self.num_time_interval):
                 x_sample[:, :, i + 1] = x_sample[:, :, i] + dw_sample[:, :, i]
-            return dw_sample, x_sample
+            return dw_sample, x_sample, None
 
-    def f_torch(self, t, x, y, z):
+    def f_torch(self, t, x, y, z, u, step):
         exp_term = torch.exp((self.lambd ** 2) * self.dim * (t - self.total_time) / 2)
         sin_term = torch.sin(self.lambd * torch.sum(x, dim=1, keepdim=True))
         temp = y - self._kappa - 1 - sin_term * exp_term
         return torch.minimum(torch.tensor(1.0, device=self.device, dtype=self.dtype), torch.square(temp))
 
-    def g_torch(self, t, x):
+    def g_torch(self, t, x, step):
         return 1 + self._kappa + torch.sin(self.lambd * torch.sum(x, dim=1, keepdim=True))

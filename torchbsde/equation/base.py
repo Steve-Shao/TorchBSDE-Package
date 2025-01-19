@@ -48,7 +48,6 @@ class Equation(object):
 
     def sample(self, num_sample):
         """Sample forward Stochastic Differential Equation (SDE).
-        
         Args:
             num_sample (int): Number of Monte Carlo samples to generate
             
@@ -57,27 +56,26 @@ class Equation(object):
         """
         raise NotImplementedError
 
-    def f_torch(self, t, x, y, z):
+    def f_torch(self, t, x, y, z, u, step):
         """Generator function in the PDE (drift term).
-        
         Args:
             t (torch.Tensor): Current time point
             x (torch.Tensor): Spatial position
             y (torch.Tensor): Solution value
             z (torch.Tensor): Gradient of the solution
-            
+            u (torch.Tensor): Control process (optional, could be None)
+            step (int): Current time step
         Raises:
             NotImplementedError: Must be implemented by derived classes
         """
         raise NotImplementedError
 
-    def g_torch(self, t, x):
+    def g_torch(self, t, x, step):
         """Terminal condition of the PDE (boundary condition at final time).
-        
         Args:
             t (torch.Tensor): Time point (typically terminal time)
             x (torch.Tensor): Spatial position
-            
+            step (int): Current time step
         Raises:
             NotImplementedError: Must be implemented by derived classes
         """

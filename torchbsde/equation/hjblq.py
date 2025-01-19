@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from .base import Equation
@@ -56,30 +57,29 @@ class HJBLQ(Equation):
             for i in range(self.num_time_interval):
                 x_sample[:, :, i + 1] = x_sample[:, :, i] + self.sigma * dw_sample[:, :, i]
                 
-            return dw_sample, x_sample
+            return dw_sample, x_sample, None
 
-    def f_torch(self, t, x, y, z):
+    def f_torch(self, t, x, y, z, u, step):
         """Implements the driver function (drift term) of the BSDE.
-        
         Args:
             t (torch.Tensor): Current time
             x (torch.Tensor): Current state
             y (torch.Tensor): Current solution value
             z (torch.Tensor): Current gradient of the solution
-            
+            u (torch.Tensor): Control process (optional, could be None)
+            step (int): Current time step
         Returns:
             torch.Tensor: Value of the driver function
         """
         # Hamiltonian term: -λ|z|²/2
         return -self.lambd * torch.sum(torch.square(z * self.sigma), dim=1, keepdim=True) / 2
 
-    def g_torch(self, t, x):
+    def g_torch(self, t, x, step):
         """Implements the terminal condition of the PDE.
-        
         Args:
             t (torch.Tensor): Terminal time
             x (torch.Tensor): Terminal state
-            
+            step (int): Current time step
         Returns:
             torch.Tensor: Value of the terminal condition
         """

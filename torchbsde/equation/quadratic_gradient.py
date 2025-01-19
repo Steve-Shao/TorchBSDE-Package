@@ -22,9 +22,9 @@ class QuadraticGradient(Equation):
             x_sample[:, :, 0] = self.x_init.expand(num_sample, self.dim)
             for i in range(self.num_time_interval):
                 x_sample[:, :, i + 1] = x_sample[:, :, i] + dw_sample[:, :, i]
-            return dw_sample, x_sample
+            return dw_sample, x_sample, None
 
-    def f_torch(self, t, x, y, z):
+    def f_torch(self, t, x, y, z, u, step):
         x_square = torch.sum(torch.square(x), dim=1, keepdim=True)
         base = self.total_time - t + x_square / self.dim
         base_alpha = torch.pow(base, self.alpha)
@@ -41,6 +41,6 @@ class QuadraticGradient(Equation):
             )
         return term1 + term2 + term3 + term4
 
-    def g_torch(self, t, x):
+    def g_torch(self, t, x, step):
         return torch.sin(
             torch.pow(torch.sum(torch.square(x), dim=1, keepdim=True) / self.dim, self.alpha))
