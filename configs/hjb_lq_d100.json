@@ -18,11 +18,14 @@
   "solver_config": {
     "batch_size": 64,
     "valid_size": 256,
+    "lr_scheduler": "reduce_on_plateau",
+    "scheduler_warmup_step": 2000,
     "lr_start_value": 1e-2,
+    "plateau_patience": 10, 
     "lr_decay_rate": 0.5,
     "lr_boundaries": [],
-    "num_iterations": 1000,
-    "logging_frequency": 100,
+    "num_iterations": 3000,
+    "logging_frequency": 10,
     "negative_loss_penalty": 0.0,
     "delta_clip": 50,
     "verbose": true

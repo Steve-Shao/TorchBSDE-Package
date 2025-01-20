@@ -54,6 +54,7 @@ class BSDESolver:
         # Paths for experiment directory
         self.test_folder_path = self.config.get('test_folder_path', 'tests/')
         self.test_scenario_name = self.config.get('test_scenario_name', 'new_test')
+        self.scheduler_warmup_step = self.config['solver_config'].get('scheduler_warmup_step', 0)
         self.exp_dir = None  # Will be set in _create_experiment_directory or loaded
 
         # -----------------------------------------
@@ -134,7 +135,7 @@ class BSDESolver:
         self.solver_config = self.config['solver_config']
 
         # Solver attributes
-        self.negative_loss_penalty = self.solver_config.get('negative_loss_penalty', 0.0)
+        self.negative_grad_penalty = self.solver_config.get('negative_grad_penalty', 0.0)
         self.delta_clip = self.solver_config.get('delta_clip', 50.0)
 
     def _initialize_model(self):
@@ -415,16 +416,20 @@ class BSDESolver:
             if train_u is not None:
                 train_u = train_u.to(dtype=self.dtype, device=self.device)
 
+            # Record train_loss for steps not logged as validation steps
+            train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
+            current_lr = self.optimizer.param_groups[0]['lr']
+            elapsed_time = time.time() - start_time
+
             # 2. Logging & validation at specified intervals
             if step % self.solver_config['logging_frequency'] == 0:
                 with torch.no_grad():
-                    train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
+                    # train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
+                    # current_lr = self.optimizer.param_groups[0]['lr']
+                    # elapsed_time = time.time() - start_time
                     val_loss, val_squared_loss = self.loss_fn(valid_dw, valid_x, valid_u, step, training=False)
                     y_init_val = self.y_init(valid_x[:, :, 0], training=False)
                     y_init = y_init_val.data.cpu().numpy().mean()
-                    current_lr = self.optimizer.param_groups[0]['lr']
-                    elapsed_time = time.time() - start_time
-
                     training_history.append([
                         step,
                         train_squared_loss,
@@ -433,7 +438,6 @@ class BSDESolver:
                         current_lr,
                         elapsed_time
                     ])
-
                     if self.solver_config.get('verbose', False):
                         self.logger.info(
                             f"step: {step:5}, val loss: {val_squared_loss:.6f}, "
@@ -443,12 +447,13 @@ class BSDESolver:
                 # 4. Step the LR scheduler based on the scheduler type
                 if self.lr_scheduler:
                     if self.lr_scheduler_type == "reduce_on_plateau":
-                        self.lr_scheduler.step(val_loss)
+                        if step >= self.scheduler_warmup_step:
+                            self.lr_scheduler.step(val_loss)
             else:
-                # Record train_loss for steps not logged as validation steps
-                train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
-                current_lr = self.optimizer.param_groups[0]['lr']
-                elapsed_time = time.time() - start_time
+                # # Record train_loss for steps not logged as validation steps
+                # train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
+                # current_lr = self.optimizer.param_groups[0]['lr']
+                # elapsed_time = time.time() - start_time
                 training_history.append([
                     step,
                     train_squared_loss,
@@ -505,8 +510,8 @@ class BSDESolver:
             torch.Tensor: The scalar loss.
             float: The plain squared loss without clipping or penalties.
         """
-        # Forward pass: model returns (predicted terminal value, negative_loss)
-        y_terminal, negative_loss = self.model((dw, x, u), step, training)
+        # Forward pass: model returns (predicted terminal value, negative_grad_loss)
+        y_terminal, negative_grad_loss = self.model((dw, x, u), step, training)
 
         # True terminal function g_terminal
         g_terminal = self.bsde.g_torch(
@@ -536,7 +541,7 @@ class BSDESolver:
         loss = torch.mean(clipped_loss)
 
         # Add penalty for negative output if needed
-        loss += self.negative_loss_penalty * negative_loss
+        loss += self.negative_grad_penalty * negative_grad_loss
         return loss, plain_squared_loss
 
     # =====================================================================
@@ -743,7 +748,7 @@ if __name__ == '__main__':
             "lr_boundaries": [1000, 2000, 3000],
             "num_iterations": 5000,
             "logging_frequency": 100,
-            "negative_loss_penalty": 0.0,
+            "negative_grad_penalty": 0.0,
             "delta_clip": 50,
             "verbose": True,
         },
@@ -779,7 +784,7 @@ if __name__ == '__main__':
 
     # Test forward pass
     print("\nTesting forward pass...")
-    y_pred, negative_loss = solver.model((test_dw, test_x), training=False)
+    y_pred, negative_grad_loss = solver.model((test_dw, test_x), training=False)
     print("Predicted Y-terminal shape:", y_pred.shape)
 
     # Test loss computation

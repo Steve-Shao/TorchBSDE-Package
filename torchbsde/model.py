@@ -96,19 +96,19 @@ class NonsharedModel(nn.Module):
         self.exp_dir = os.path.join(self.test_folder_path, self.test_scenario_name)
         os.makedirs(self.exp_dir, exist_ok=True)
 
-    def calculate_negative_loss(self, func):
+    def calculate_negative_grad_loss(self, func):
         """Calculate the negative loss for a given tensor.
         
         Args:
             func: Tensor to calculate negative loss from
         
         Returns:
-            negative_loss: Scalar tensor representing the negative loss
+            negative_grad_loss: Scalar tensor representing the negative loss
         """
         # zero_func = torch.minimum(torch.min(func, dim=1, keepdim=True)[0], torch.tensor(0.0, device=func.device, dtype=func.dtype))
         zero_func = torch.minimum(torch.min(func, dim=0, keepdim=True)[0], torch.tensor(0.0, device=func.device, dtype=func.dtype))
-        negative_loss = torch.sum(zero_func ** 2)
-        return negative_loss
+        negative_grad_loss = torch.sum(zero_func ** 2)
+        return negative_grad_loss
 
     def forward(self, inputs, step, training):
         """Forward pass of the model.
@@ -149,12 +149,12 @@ class NonsharedModel(nn.Module):
         dw, x, u = inputs
         time_stamp = torch.arange(0, self.equation_config['num_time_interval'], device=self.device, dtype=self.dtype) * self.bsde.delta_t
         y = self.y_init(x[:, :, 0], training) # / self.bsde.dim # (this is an enginnering trick used my Han et al.)
-        negative_loss = self.calculate_negative_loss(y)
+        negative_grad_loss = self.calculate_negative_grad_loss(y)
 
         # Forward propagation through time steps
         for t in range(0, self.bsde.num_time_interval):
             z = self.subnet[t](x[:, :, t], training) # / self.bsde.dim # (this is an enginnering trick used my Han et al.)
-            negative_loss += self.calculate_negative_loss(z)
+            negative_grad_loss += self.calculate_negative_grad_loss(z)
 
             if u is not None:
                 y = y - self.bsde.delta_t * (
@@ -165,7 +165,7 @@ class NonsharedModel(nn.Module):
                     self.bsde.f_torch(time_stamp[t], x[:, :, t], y, z, None, step)
                 ) + torch.sum(torch.matmul(z, self.sigma[:, :, t]) * dw[:, :, t], 1, keepdim=True)
 
-        return y, negative_loss
+        return y, negative_grad_loss
 
     def plot_subnet_gradients(self, filename='subnet_gradients.png'):
         """
