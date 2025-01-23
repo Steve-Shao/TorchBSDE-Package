@@ -54,8 +54,14 @@ class BSDESolver:
         # Paths for experiment directory
         self.test_folder_path = self.config.get('test_folder_path', 'tests/')
         self.test_scenario_name = self.config.get('test_scenario_name', 'new_test')
-        self.scheduler_warmup_step = self.config['solver_config'].get('scheduler_warmup_step', 0)
         self.exp_dir = None  # Will be set in _create_experiment_directory or loaded
+
+        self.lr_plateau_warmup_step = self.config['solver_config'].get('lr_plateau_warmup_step', 0)
+        self.lr_decay_rate = self.config['solver_config'].get('lr_decay_rate', 0.5)
+        self.lr_plateau_patience = self.config['solver_config'].get('lr_plateau_patience', 10)
+        self.lr_plateau_threshold = self.config['solver_config'].get('lr_plateau_threshold', 1e-4)
+        self.lr_plateau_cooldown = self.config['solver_config'].get('lr_plateau_cooldown', 10)
+        self.lr_plateau_min_lr = self.config['solver_config'].get('lr_plateau_min_lr', 1e-5)
 
         # -----------------------------------------
         # 2. Detecting and Handling Existing Experiments
@@ -185,12 +191,12 @@ class BSDESolver:
             self.lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
                 mode = 'min',
-                factor = self.solver_config['lr_decay_rate'],
-                patience = self.solver_config['plateau_patience'], 
-                threshold = 1e-3,
+                factor = self.lr_decay_rate,
+                patience = self.lr_plateau_patience, 
+                threshold = self.lr_plateau_threshold,
                 threshold_mode = 'rel',
-                cooldown = 10, 
-                min_lr = 1e-5
+                cooldown = self.lr_plateau_cooldown, 
+                min_lr = self.lr_plateau_min_lr
             )
             self.logger.info("ReduceLROnPlateau scheduler initialized.")
         else:
@@ -447,7 +453,7 @@ class BSDESolver:
                 # 4. Step the LR scheduler based on the scheduler type
                 if self.lr_scheduler:
                     if self.lr_scheduler_type == "reduce_on_plateau":
-                        if step >= self.scheduler_warmup_step:
+                        if step >= self.lr_plateau_warmup_step:
                             self.lr_scheduler.step(val_loss)
             else:
                 # # Record train_loss for steps not logged as validation steps
