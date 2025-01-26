@@ -1,9 +1,39 @@
 # [DeepBSDE Solver](https://doi.org/10.1073/pnas.1718942115) Package in PyTorch
 
-This repository implements Jiequn Han's [DeepBSDE solver](https://github.com/frankhan91/DeepBSDE), which solves high-dimensional PDEs using deep learning, in PyTorch. 
+This repository implements Jiequn Han's [DeepBSDE solver](https://github.com/frankhan91/DeepBSDE) in `PyTorch`. It solves high-dimensional PDEs using deep learning. We have added the following improvements:
+
+1. **Faster training on GPU**: All computations run on GPU with vectorized tensor operations. This speeds up training for large problems.
+2. **Allow random initial state**: The initial state can be random, not just fixed. The initial value function uses a neural network instead of a scalar parameter.
+3. **Allow "stop and resume" training**: Training can be paused and resumed by updating `num_iterations` in the config dict.
+4. **Neural networks `z` represent gradient directly**: The networks output the gradient itself, not its product with the diffusion parameter `sigma`. This simplifies work with complex sigma equations.
+5. **Removed engineering tricks**: We removed tricks like gradient input scaling from the original implementation.
+6. **Allows reference policies**: This helps solve HJB equations for control problems.
+7. **More config options**: The config dict now has these key sections:
+  - `equation_config`: Basic equation settings:
+    - `_comment`: Equation description
+    - `eqn_name`: Equation name
+    - `policy`: Reference policy for HJB control problems
+    - ......
+  - `network_config`: Neural network settings:
+    - `use_bn_input`, `use_bn_hidden`, `use_bn_output`: Batch norm controls
+    - `num_hiddens`: Hidden layer sizes
+    - `activation_function`: Type of activation
+    - ......
+  - `solver_config`: Solver settings:
+    - `batch_size`, `valid_size`: Training and validation batch sizes
+    - `lr_scheduler`: Learning rate schedule (`manual` or `reduce_on_plateau`)
+      - `lr_plateau_warmup_step`, `lr_plateau_patience`, `lr_plateau_threshold`, `lr_plateau_cooldown`, `lr_plateau_min_lr`: Plateau scheduler settings
+      - `lr_start_value`, `lr_decay_rate`: Initial rate and decay
+    - `num_iterations`: Total training steps
+    - `logging_frequency`: Log interval
+    - `negative_grad_penalty`: Penalty for negative gradients
+    - ......
+  - `dtype`: Data type for computations
+  - `test_folder_path`: Test results folder
+  - `test_scenario_name`: Test scenario ID
+  - `timezone`: Logging timezone
 
 The code has been restructured to work either as an installable Python package or as a git submodule in other projects. Extensive comments and docstrings have been added to enhance readability and understanding of the implementation. 
-
 
 ## Installation
 
@@ -35,22 +65,17 @@ pip install git+https://github.com/steve-shao/TorchBSDE-Package.git
 ```
 
 
-## Training
+## Example Usage
 
 ```
 python -m tests.run_from_config --config_path=configs/hjb_lq_d100.json
 ```
 
-Command-line flags:
-
-* `config_path`: Config path corresponding to the partial differential equation (PDE) to solve. 
-There are seven PDEs implemented so far. See [Problems](#problems) section below.
-* `exp_name`: Name of numerical experiment, prefix of logging and output.
-* `log_dir`: Directory to write logging and output array.
 
 
 <br><br><br>
 
+---
 ---
 *Note: Everything below was copied from Jiequn Han's original GitHub repository's README.*
 

@@ -3,7 +3,7 @@
         "_comment": "HJB equation in PNAS paper doi.org/10.1073/pnas.1718942115",
         "eqn_name": "HJBLQ",
         "total_time": 1.0,
-        "dim": 10,
+        "dim": 100,
         "num_time_interval": 20
     },
     "network_config": {

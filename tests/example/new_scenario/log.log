@@ -1,99 +1,47 @@
-2025-01-05 20:42:55 - INFO - ========== Experiment Information ==========
-2025-01-05 20:42:55 - INFO - Experiment directory : tests/example/new_scenario
-2025-01-05 20:42:55 - INFO - Date                 : 2025-01-05
-2025-01-05 20:42:55 - INFO - Time                 : 20:42:55
-2025-01-05 20:42:55 - INFO - Dtype                : torch.float64
-2025-01-05 20:42:55 - INFO - Device               : cuda
-2025-01-05 20:43:45 - INFO - ========== Experiment Information ==========
-2025-01-05 20:43:45 - INFO - Experiment directory : tests/example/new_scenario
-2025-01-05 20:43:45 - INFO - Date                 : 2025-01-05
-2025-01-05 20:43:45 - INFO - Time                 : 20:43:45
-2025-01-05 20:43:45 - INFO - Dtype                : torch.float64
-2025-01-05 20:43:45 - INFO - Device               : cuda
-2025-01-05 20:43:46 - INFO - ReduceLROnPlateau scheduler initialized.
-2025-01-05 20:43:46 - INFO - Configuration saved to tests/example/new_scenario/config.json
-2025-01-05 20:43:46 - INFO - ========== Training Started ==========
-2025-01-05 20:43:46 - INFO - step:     0, val loss: 4.992593, Y0: 0.023197, lr: 0.010000
-2025-01-05 20:43:46 - INFO - step:    10, val loss: 2.131912, Y0: 1.169176, lr: 0.010000
-2025-01-05 20:43:46 - INFO - step:    20, val loss: 0.928358, Y0: 1.704842, lr: 0.010000
-2025-01-05 20:43:47 - INFO - step:    30, val loss: 0.454638, Y0: 2.108109, lr: 0.010000
-2025-01-05 20:43:47 - INFO - step:    40, val loss: 0.325524, Y0: 2.022752, lr: 0.010000
-2025-01-05 20:43:47 - INFO - step:    50, val loss: 0.265158, Y0: 2.248995, lr: 0.010000
-2025-01-05 20:43:47 - INFO - step:    60, val loss: 0.210491, Y0: 2.143794, lr: 0.010000
-2025-01-05 20:43:47 - INFO - step:    70, val loss: 0.191069, Y0: 2.228182, lr: 0.010000
-2025-01-05 20:43:48 - INFO - step:    80, val loss: 0.176733, Y0: 2.165568, lr: 0.010000
-2025-01-05 20:43:48 - INFO - step:    90, val loss: 0.171454, Y0: 2.133938, lr: 0.010000
-2025-01-05 20:43:48 - INFO - step:   100, val loss: 0.158467, Y0: 2.155526, lr: 0.010000
-2025-01-05 20:43:48 - INFO - ========== Saving Results ==========
-2025-01-05 20:43:48 - INFO - Training history saved to tests/example/new_scenario/training_history.csv
-2025-01-05 20:43:48 - INFO - Model state saved to tests/example/new_scenario/model.pth
-2025-01-05 20:43:48 - INFO - Optimizer state saved to tests/example/new_scenario/optimizer.pth
-2025-01-05 20:43:48 - INFO - LR scheduler state saved to tests/example/new_scenario/scheduler.pth
-2025-01-05 20:43:48 - INFO - Training history plot saved to tests/example/new_scenario/training_history.png
-2025-01-05 20:43:48 - INFO - Y0 history plot saved to tests/example/new_scenario/y0_history.png
-2025-01-05 20:44:35 - INFO - ========== Experiment Information ==========
-2025-01-05 20:44:35 - INFO - Experiment directory : tests/example/new_scenario
-2025-01-05 20:44:35 - INFO - Date                 : 2025-01-05
-2025-01-05 20:44:35 - INFO - Time                 : 20:44:35
-2025-01-05 20:44:35 - INFO - Dtype                : torch.float64
-2025-01-05 20:44:35 - INFO - Device               : cuda
-2025-01-05 20:44:35 - INFO - ReduceLROnPlateau scheduler initialized.
-2025-01-05 20:44:35 - INFO - ========== Existing Checkpoint Found ==========
-2025-01-05 20:44:35 - INFO - Validating previous state...
-2025-01-05 20:44:35 - INFO - Loading previous state...
-2025-01-05 20:44:35 - INFO - Model loaded from tests/example/new_scenario/model.pth
-2025-01-05 20:44:35 - INFO - Optimizer loaded from tests/example/new_scenario/optimizer.pth
-2025-01-05 20:44:35 - INFO - Training history loaded. Resuming from step 101.
-2025-01-05 20:44:35 - INFO - LR scheduler loaded from tests/example/new_scenario/scheduler.pth
-2025-01-05 20:44:35 - INFO - Configuration saved to tests/example/new_scenario/config.json
-2025-01-05 20:44:35 - INFO - ========== Training Started ==========
-2025-01-05 20:44:36 - INFO - step:   110, val loss: 0.147915, Y0: 2.134755, lr: 0.010000
-2025-01-05 20:44:36 - INFO - step:   120, val loss: 0.147687, Y0: 2.099622, lr: 0.010000
-2025-01-05 20:44:36 - INFO - step:   130, val loss: 0.132100, Y0: 2.219859, lr: 0.010000
-2025-01-05 20:44:36 - INFO - step:   140, val loss: 0.129448, Y0: 2.180150, lr: 0.010000
-2025-01-05 20:44:37 - INFO - step:   150, val loss: 0.129468, Y0: 2.273013, lr: 0.010000
-2025-01-05 20:44:37 - INFO - step:   160, val loss: 0.120876, Y0: 2.219356, lr: 0.010000
-2025-01-05 20:44:37 - INFO - step:   170, val loss: 0.124545, Y0: 2.199934, lr: 0.010000
-2025-01-05 20:44:37 - INFO - step:   180, val loss: 0.125950, Y0: 2.111153, lr: 0.010000
-2025-01-05 20:44:37 - INFO - step:   190, val loss: 0.119295, Y0: 2.097782, lr: 0.010000
-2025-01-05 20:44:38 - INFO - step:   200, val loss: 0.102310, Y0: 2.177655, lr: 0.010000
-2025-01-05 20:44:38 - INFO - ========== Saving Results ==========
-2025-01-05 20:44:38 - INFO - Training history saved to tests/example/new_scenario/training_history.csv
-2025-01-05 20:44:38 - INFO - Model state saved to tests/example/new_scenario/model.pth
-2025-01-05 20:44:38 - INFO - Optimizer state saved to tests/example/new_scenario/optimizer.pth
-2025-01-05 20:44:38 - INFO - LR scheduler state saved to tests/example/new_scenario/scheduler.pth
-2025-01-05 20:44:38 - INFO - Training history plot saved to tests/example/new_scenario/training_history.png
-2025-01-05 20:44:38 - INFO - Y0 history plot saved to tests/example/new_scenario/y0_history.png
-2025-01-05 20:46:46 - INFO - ========== Experiment Information ==========
-2025-01-05 20:46:46 - INFO - Experiment directory : tests/example/new_scenario
-2025-01-05 20:46:46 - INFO - Date                 : 2025-01-05
-2025-01-05 20:46:46 - INFO - Time                 : 20:46:46
-2025-01-05 20:46:46 - INFO - Dtype                : torch.float64
-2025-01-05 20:46:46 - INFO - Device               : cuda
-2025-01-05 20:46:46 - INFO - ReduceLROnPlateau scheduler initialized.
-2025-01-05 20:46:46 - INFO - ========== Existing Checkpoint Found ==========
-2025-01-05 20:46:46 - INFO - Validating previous state...
-2025-01-05 20:46:46 - INFO - Loading previous state...
-2025-01-05 20:46:46 - INFO - Model loaded from tests/example/new_scenario/model.pth
-2025-01-05 20:46:46 - INFO - Optimizer loaded from tests/example/new_scenario/optimizer.pth
-2025-01-05 20:46:46 - INFO - Training history loaded. Resuming from step 201.
-2025-01-05 20:46:46 - INFO - LR scheduler loaded from tests/example/new_scenario/scheduler.pth
-2025-01-05 20:46:46 - INFO - Configuration saved to tests/example/new_scenario/config.json
-2025-01-05 20:46:46 - INFO - ========== Training Started ==========
-2025-01-05 20:46:46 - INFO - step:   210, val loss: 0.099816, Y0: 2.121366, lr: 0.010000
-2025-01-05 20:46:47 - INFO - step:   220, val loss: 0.115165, Y0: 2.049354, lr: 0.010000
-2025-01-05 20:46:47 - INFO - step:   230, val loss: 0.098961, Y0: 2.171246, lr: 0.010000
-2025-01-05 20:46:47 - INFO - step:   240, val loss: 0.103796, Y0: 2.143203, lr: 0.010000
-2025-01-05 20:46:47 - INFO - step:   250, val loss: 0.104955, Y0: 2.252372, lr: 0.010000
-2025-01-05 20:46:48 - INFO - step:   260, val loss: 0.100761, Y0: 2.210789, lr: 0.010000
-2025-01-05 20:46:48 - INFO - step:   270, val loss: 0.104730, Y0: 2.172990, lr: 0.010000
-2025-01-05 20:46:48 - INFO - step:   280, val loss: 0.106577, Y0: 2.115053, lr: 0.010000
-2025-01-05 20:46:48 - INFO - step:   290, val loss: 0.098203, Y0: 2.102663, lr: 0.010000
-2025-01-05 20:46:48 - INFO - step:   300, val loss: 0.086201, Y0: 2.179896, lr: 0.010000
-2025-01-05 20:46:48 - INFO - ========== Saving Results ==========
-2025-01-05 20:46:48 - INFO - Training history saved to tests/example/new_scenario/training_history.csv
-2025-01-05 20:46:48 - INFO - Model state saved to tests/example/new_scenario/model.pth
-2025-01-05 20:46:48 - INFO - Optimizer state saved to tests/example/new_scenario/optimizer.pth
-2025-01-05 20:46:48 - INFO - LR scheduler state saved to tests/example/new_scenario/scheduler.pth
-2025-01-05 20:46:49 - INFO - Training history plot saved to tests/example/new_scenario/training_history.png
-2025-01-05 20:46:49 - INFO - Y0 history plot saved to tests/example/new_scenario/y0_history.png
+2025-01-26 13:11:20 - INFO - ========== Experiment Information ==========
+2025-01-26 13:11:20 - INFO - Experiment directory : tests/example/new_scenario
+2025-01-26 13:11:20 - INFO - Date                 : 2025-01-26
+2025-01-26 13:11:20 - INFO - Time                 : 13:11:20
+2025-01-26 13:11:20 - INFO - Dtype                : torch.float64
+2025-01-26 13:11:20 - INFO - Device               : cuda
+2025-01-26 13:11:21 - INFO - ReduceLROnPlateau scheduler initialized.
+2025-01-26 13:11:21 - INFO - Configuration saved to tests/example/new_scenario/config.json
+2025-01-26 13:11:21 - INFO - ========== Training Started ==========
+2025-01-26 13:11:21 - INFO - step:     0, val loss: 17.172289, Y0: -0.020899, lr: 0.010000
+2025-01-26 13:11:21 - INFO - step:    10, val loss: 6.744796, Y0: 0.653221, lr: 0.010000
+2025-01-26 13:11:21 - INFO - step:    20, val loss: 6.183852, Y0: 1.698017, lr: 0.010000
+2025-01-26 13:11:22 - INFO - step:    30, val loss: 4.144260, Y0: 2.194249, lr: 0.010000
+2025-01-26 13:11:22 - INFO - step:    40, val loss: 1.220584, Y0: 3.910407, lr: 0.010000
+2025-01-26 13:11:22 - INFO - step:    50, val loss: 0.567319, Y0: 4.894198, lr: 0.010000
+2025-01-26 13:11:22 - INFO - step:    60, val loss: 0.172750, Y0: 4.543803, lr: 0.010000
+2025-01-26 13:11:22 - INFO - step:    70, val loss: 0.130135, Y0: 4.399678, lr: 0.010000
+2025-01-26 13:11:22 - INFO - step:    80, val loss: 0.081532, Y0: 4.467301, lr: 0.010000
+2025-01-26 13:11:23 - INFO - step:    90, val loss: 0.049041, Y0: 4.598905, lr: 0.010000
+2025-01-26 13:11:23 - INFO - step:   100, val loss: 0.043520, Y0: 4.651650, lr: 0.010000
+2025-01-26 13:11:23 - INFO - step:   110, val loss: 0.036643, Y0: 4.614340, lr: 0.010000
+2025-01-26 13:11:23 - INFO - step:   120, val loss: 0.033083, Y0: 4.618207, lr: 0.010000
+2025-01-26 13:11:23 - INFO - step:   130, val loss: 0.030740, Y0: 4.616118, lr: 0.010000
+2025-01-26 13:11:23 - INFO - step:   140, val loss: 0.030164, Y0: 4.589087, lr: 0.010000
+2025-01-26 13:11:24 - INFO - step:   150, val loss: 0.029241, Y0: 4.585603, lr: 0.010000
+2025-01-26 13:11:24 - INFO - step:   160, val loss: 0.027407, Y0: 4.602777, lr: 0.010000
+2025-01-26 13:11:24 - INFO - step:   170, val loss: 0.027064, Y0: 4.586982, lr: 0.010000
+2025-01-26 13:11:24 - INFO - step:   180, val loss: 0.026031, Y0: 4.591755, lr: 0.010000
+2025-01-26 13:11:24 - INFO - step:   190, val loss: 0.024780, Y0: 4.625574, lr: 0.010000
+2025-01-26 13:11:24 - INFO - step:   200, val loss: 0.024764, Y0: 4.643765, lr: 0.010000
+2025-01-26 13:11:25 - INFO - step:   210, val loss: 0.030431, Y0: 4.697836, lr: 0.010000
+2025-01-26 13:11:25 - INFO - step:   220, val loss: 0.027425, Y0: 4.680749, lr: 0.010000
+2025-01-26 13:11:25 - INFO - step:   230, val loss: 0.022995, Y0: 4.604466, lr: 0.010000
+2025-01-26 13:11:25 - INFO - step:   240, val loss: 0.022750, Y0: 4.625111, lr: 0.010000
+2025-01-26 13:11:25 - INFO - step:   250, val loss: 0.023300, Y0: 4.641675, lr: 0.010000
+2025-01-26 13:11:26 - INFO - step:   260, val loss: 0.027306, Y0: 4.685197, lr: 0.010000
+2025-01-26 13:11:26 - INFO - step:   270, val loss: 0.023222, Y0: 4.642705, lr: 0.010000
+2025-01-26 13:11:26 - INFO - step:   280, val loss: 0.022208, Y0: 4.609988, lr: 0.010000
+2025-01-26 13:11:26 - INFO - step:   290, val loss: 0.023229, Y0: 4.579243, lr: 0.010000
+2025-01-26 13:11:26 - INFO - step:   300, val loss: 0.023621, Y0: 4.571816, lr: 0.010000
+2025-01-26 13:11:26 - INFO - ========== Saving Results ==========
+2025-01-26 13:11:26 - INFO - Training history saved to tests/example/new_scenario/training_history.csv
+2025-01-26 13:11:26 - INFO - Model state saved to tests/example/new_scenario/model.pth
+2025-01-26 13:11:26 - INFO - Optimizer state saved to tests/example/new_scenario/optimizer.pth
+2025-01-26 13:11:26 - INFO - LR scheduler state saved to tests/example/new_scenario/scheduler.pth
+2025-01-26 13:11:26 - INFO - Y0 history plot saved to tests/example/new_scenario/y0_history.png
+2025-01-26 13:11:27 - INFO - Training history plot saved to tests/example/new_scenario/training_history.png

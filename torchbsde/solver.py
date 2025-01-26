@@ -785,17 +785,22 @@ if __name__ == '__main__':
     # Test data generation
     print("\nGenerating test batch...")
     test_batch = bsde.sample(config['solver_config']['batch_size'])
-    test_dw, test_x, test_u = test_batch
+    if len(test_batch) == 3:
+        test_dw, test_x, test_u = test_batch
+    else:
+        test_dw, test_x = test_batch
+        test_u = None
     print("Sample batch shapes - dw:", test_dw.shape, "x:", test_x.shape)
 
     # Test forward pass
     print("\nTesting forward pass...")
-    y_pred, negative_grad_loss = solver.model((test_dw, test_x), training=False)
+    inputs = (test_dw, test_x, test_u) if test_u is not None else (test_dw, test_x, None)
+    y_pred, negative_grad_loss = solver.model(inputs, step=0, training=False)
     print("Predicted Y-terminal shape:", y_pred.shape)
 
     # Test loss computation
     print("\nComputing loss...")
-    loss_val = solver.loss_fn(test_dw, test_x, test_u, step=0, training=False)
+    loss_val, _ = solver.loss_fn(test_dw, test_x, test_u, step=0, training=False)
     print("Initial loss value:", loss_val.item())
 
     # Test full training

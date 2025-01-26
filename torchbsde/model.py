@@ -288,7 +288,7 @@ if __name__ == '__main__':
     batch_size = 64
     dw = torch.zeros((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
     x = torch.zeros((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
-    y, _ = model((dw, x), training=False)  # Build model
+    y, _ = model((dw, x, None), training=False, step=0)  # Build model
     print(model)
 
     # Print model parameters
@@ -328,7 +328,7 @@ if __name__ == '__main__':
     print("----------------------------")
     
     # Test 1: Zero inputs
-    y_zero, _ = model((dw, x), training=False)
+    y_zero, _ = model((dw, x, None), training=False, step=0)
     print("\nTest with zero inputs:")
     print(f"Output shape: {y_zero.shape}")
     print(f"Output mean: {torch.mean(y_zero):.6f}")
@@ -339,7 +339,7 @@ if __name__ == '__main__':
     # Test 2: Random normal inputs
     dw_random = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
     x_random = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype)
-    y_random, _ = model((dw_random, x_random), training=False)
+    y_random, _ = model((dw_random, x_random, None), training=False, step=0)
     print("\nTest with random normal inputs:")
     print(f"Output shape: {y_random.shape}")
     print(f"Output mean: {torch.mean(y_random):.6f}")
@@ -350,7 +350,7 @@ if __name__ == '__main__':
     # Test 3: Edge case with large values
     dw_large = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype) * 10
     x_large = torch.randn((batch_size, config['equation_config']['dim'], config['equation_config']['num_time_interval']), device=device, dtype=dtype) * 10
-    y_large, _ = model((dw_large, x_large), training=False)
+    y_large, _ = model((dw_large, x_large, None), training=False, step=0)
     print("\nTest with large inputs:")
     print(f"Output shape: {y_large.shape}")
     print(f"Output mean: {torch.mean(y_large):.6f}")

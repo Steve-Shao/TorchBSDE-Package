@@ -22,6 +22,11 @@ dependencies:
   - matplotlib # Plotting library
   - seaborn    # Statistical visualization
 
+  # Additional dependencies
+  - pandas
+  - pytz
+
   # Additional packages installed via pip
   - pip:
     - torch    # Deep learning framework
+    - absl-py
