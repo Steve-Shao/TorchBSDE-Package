@@ -33,6 +33,9 @@ This repository implements Jiequn Han's [DeepBSDE solver](https://github.com/fra
   - `test_scenario_name`: Test scenario ID
   - `timezone`: Logging timezone
 
+We focus on solving the HJB equation for control problems, where a reference policy is used to generate training data. 
+We have made a note on how to tune the hyperparameters. Please refer to [`hyperparameter-tuning.pdf`](hyperparameter-tuning-note/hyperparameter-tuning.pdf).
+
 The code has been restructured to work either as an installable Python package or as a git submodule in other projects. Extensive comments and docstrings have been added to enhance readability and understanding of the implementation. 
 
 ## Installation
