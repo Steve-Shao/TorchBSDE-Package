@@ -39,6 +39,7 @@ The code has been restructured to work either as an installable Python package o
 
 We focus on solving the HJB equation for control problems, where a reference policy is used to generate training data. For those with a math background (like us), we suggest following these key principles in training:
 1. Follow an engineering mindset: 
+   - Use systematic, iterative refinement instead of single, analytical fixes. 
    - Focus on empirical evidence, not theoretical assumptions.
 2. Focus only on key metrics (e.g., policy performance) to simplify decision-making.
 3. Do in-depth, fact-based analysis: 
