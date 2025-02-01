@@ -37,19 +37,7 @@ The code has been restructured to work either as an installable Python package o
 
 ## Training Tips
 
-We focus on solving the HJB equation for control problems, where a reference policy is used to generate training data. For those with a math background (like us), we suggest following these key principles in training:
-1. Follow an engineering mindset: 
-   - Use systematic, iterative refinement instead of single, analytical fixes. 
-   - Focus on empirical evidence, not theoretical assumptions.
-2. Focus only on key metrics (e.g., policy performance) to simplify decision-making.
-3. Do in-depth, fact-based analysis: 
-   - Isolate variables through controlled experiments.
-   - Focus only on facts. Seek the simplest explanation through first principles.
-4. Seek the most straightforward solutions:
-   - Implement direct fixes, not indirect, complex changes.
-   (e.g., use shape constraints to fix negative bid prices instead of a new network architecture) 
-
-We have made a note on how to tune the hyperparameters. Please refer to [`hyperparameter-tuning.pdf`](hyperparameter-tuning-note/hyperparameter-tuning.pdf).
+We focus on solving the HJB equation for control problems, where a reference policy is used to generate training data. For those with a math background (like us), we suggest following [this note](https://steve-shao.github.io/posts/2025/hyperparameter-tuning/) on how to tune the hyperparameters.
 
 ## Installation
 
