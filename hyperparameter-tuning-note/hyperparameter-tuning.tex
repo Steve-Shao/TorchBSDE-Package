@@ -1,0 +1,260 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Document Class
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Using Tufte handout class for elegant typesetting with margin notes
+\documentclass{tufte-handout}
+
+% Fix fancyhdr warning by adjusting header height
+\setlength{\headheight}{23.5pt}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Document Information
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Title and authors
+\title{A Systematic Approach to Hyperparameter Tuning for Neural Network-Based PDE Solvers}
+\author[]{}
+
+% Optional date field - uncomment to use
+%\date{27 April 2024}
+
+% Uncomment to show page layout frames for debugging
+%\geometry{showframe}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Required Packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Graphics and image handling
+\usepackage{graphicx}
+% Set default image sizing parameters
+\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
+% Set graphics path for image files
+\graphicspath{{graphics/}}
+
+% Mathematics and formatting packages
+\usepackage{amsmath}    % Extended mathematics capabilities
+\usepackage{booktabs}   % Professional quality tables
+\usepackage{units}      % Improved unit and fraction formatting
+\usepackage{multicol}   % Support for multiple columns
+\usepackage{lipsum}     % Lorem ipsum placeholder text
+\usepackage{fancyvrb}   % Enhanced verbatim text environments
+\usepackage{float}      % For floating tables
+
+% Set verbatim font size
+\fvset{fontsize=\normalsize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Custom Documentation Commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Define consistent formatting for documentation elements
+\newcommand{\doccmd}[1]{\texttt{\textbackslash#1}}        % LaTeX commands
+\newcommand{\docopt}[1]{\ensuremath{\langle}\textrm{\textit{#1}}\ensuremath{\rangle}}  % Optional args
+\newcommand{\docarg}[1]{\textrm{\textit{#1}}}            % Required args
+\newcommand{\docenv}[1]{\textsf{#1}}                     % Environment names
+\newcommand{\docpkg}[1]{\texttt{#1}}                     % Package names
+\newcommand{\doccls}[1]{\texttt{#1}}                     % Document classes
+\newcommand{\docclsopt}[1]{\texttt{#1}}                  % Class options
+
+
+\usepackage{parskip} % Add space between paragraphs
+
+
+% Custom quote environment for documentation
+\newenvironment{docspec}{\begin{quote}\noindent}{\end{quote}}
+
+% Optional section numbering depth control
+% \setcounter{secnumdepth}{1}  % Number sections to depth 1
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Document Content
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\setlength\parindent{0pt}
+
+% Generate title block
+\maketitle
+
+% Abstract section
+\begin{abstract}
+This note provides a systematic approach to selecting hyperparameters for training neural networks.
+\footnote{It is important to note that particular ``engineering tricks'' that work for one problem may not work for another. Instead, we hope this note provides a systematic approach to achieving stable training loss and good policy performance.}
+Specifically, we consider the context of solving high-dimensional Hamilton-Jacobi-Bellman (HJB) equations in Brownian control problems using deep learning-based methods, e.g. the DeepBSDE and Deep Splitting methods. 
+\end{abstract}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\underline{Overview}}\label{sec:overview}
+
+Our approach consists of three phases: 
+\begin{itemize}
+    \item \textbf{Exploration}: quick trial and error to choose good hyperparameters
+    \item \textbf{Improvement}: identify issues and useful tricks fix them
+    \item \textbf{Exploitation}: push to the limit
+\end{itemize}
+The key is to \emph{focus on the first two phases}, not the exploitation phase.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\underline{Core Metrics}}\label{sec:core-metrics}
+
+Since we train solvers for control problems, the most important metric is \textbf{policy performance}.
+We also consider the loss curve, focusing on convergence stability and \textbf{final loss value}.
+When the loss does not converge, policy performance tends to be poor.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\underline{Start with Minimal Representative Examples}}\label{sec:minimal-examples}
+
+\noindent
+We recommend starting with minimal yet meaningful examples.
+\footnote{
+    The idea is to apply Steps 1 and 2 iteratively on progressively more complex problems.
+    Problems in lower dimensions tend to be more tractable and interpretable.
+    This approach allows for faster iteration cycles and makes it easier to identify and debug issues. 
+}
+Once a good configuration is found, move to a slightly more complex version and repeat the process.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\underline{Step 1: Exploration of Hyperparameters}}\label{sec:explore-hyperparameters}
+
+In this step, we perform quick trial and error to identify good configurations. 
+We test \textbf{one change at a time} to isolate effects.
+\footnote{
+    Three assumptions are made here: 
+    \begin{enumerate}
+        \item \textbf{Generality}: A successful change should improve performance across multiple scenarios. 
+        \item \textbf{Monotonicity or Unimodality}: Hyperparameter effects are predictable (e.g., larger networks monotonically improve accuracy up to a point).
+        \item \textbf{No Synergy}: If individual changes (A or B) fail, their combination (A+B) is unlikely to succeed.
+    \end{enumerate}
+} 
+
+The common hyperparameters and their typical values are listed in Table \ref{tab:hyperparameters}.
+Please remember to add problem-specific hyperparameters, e.g., initial state distribution, diffusion term multiplier (both are commonly used to for getting better coverage of the sample space), and most importantly, the \textbf{reference policy} used to generate training data.
+
+\begin{table}[ht]
+    \centering
+    \small
+    \begin{tabular}{l|l}
+        \hline
+        \textbf{Hyperparameters} & \textbf{Values} \\ \hline
+        Precision & Typically float64 \\ \hline
+
+        Neural network architecture & Typically MLP \\ 
+        Number of hidden layers & Typically 2, 3, or 4 \\ 
+        Number of nodes per layers & Typically 50 to 200, \\ 
+        & or larger than problem dimension. \\ 
+        Activation function & Start with ReLU or LeakyReLU \\ \hline
+
+        Batch normalization & On / off for input, hidden, output layers. \\ 
+        & Start with off for all layers. \\ 
+        Gradient clipping & Start with none \\ 
+        Delta clipping & Start with none \\ \hline
+        Optimizer & Typically Adam \\ 
+        Batch size (training) & Powers of 2, such as 128, 256, etc. \\ 
+        Batch size (validation) & Powers of 2, larger than training batch size \\ \hline
+        Learning rate scheduler & Start with manual (piecewise constant) \\ 
+        Learning rate (initial) & Typically $10^{-2}$ or $10^{-3}$ \\ 
+        Learning rate decay rate & Typically 1/2 or 1/10 \\ 
+        Learning rate (minimum) & Typically $10^{-5}$ or $10^{-6}$ \\ 
+        Total number of iterations & TBD (manual adjustment) \\ \hline
+    \end{tabular}
+    \caption{Hyperparameters and their typical values}
+    \label{tab:hyperparameters}
+\end{table}
+
+We have the following remarks based on our experience:
+\begin{itemize}
+    \item \textbf{Start with testing network architecture}: 
+    The first step is to explore the network architecture. 
+    We suggest testing things in the following order:
+    \begin{enumerate}
+        \item Number of layers
+        \item Number of nodes in each layer
+        \item Activation function
+    \end{enumerate}
+    \item \textbf{Target for stable loss convergence}: 
+    When loss does not converge stably, we suggest trying things in the following order:
+    \begin{enumerate}
+        \item Use smaller initial learning rate
+        \item Use larger batch size
+        \item Try gradient clipping
+        \item Try batch normalization
+        \item Try delta clipping in loss function
+    \end{enumerate}
+    \item \textbf{Learning rate scheduler}: 
+    We suggest starting by manually cutting the learning rate. 
+    \footnote{The rule of thumb is to cut the learning rate when the loss curve flattens.}
+    \footnote{We also suggest waiting more patiently before cutting the learning rate as it gets smaller.}
+    This helps improve understanding of the problem.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\underline{Step 2: Model-Based Validation for Improving Policy}}\label{sec:improve-policy-performance}
+
+Next, we validate solutions (e.g. the trained policy) against domain knowledge and identify corrective measures. 
+Specifically, we want to: 
+\begin{enumerate}
+    \item Verify physical plausibility of results, 
+    \item Confirm mathematical consistency with problem structure, 
+    \item Check boundary condition adherence. 
+\end{enumerate}
+Ideally, we want to look from as many angles as possible. 
+\footnote{
+    For example, we can look at: 
+    \begin{enumerate}
+        \item \textbf{Core metric}: Policy performance (cost/reward) vs. analytical/benchmark solutions
+        \item \textbf{Other visualizations}:
+            \begin{itemize}
+                \item Temporal trajectories of states / actions / policy / system dynamics. (E.g., is policy smooth / stable over time?)
+                \item Surface plots (over states) of value functions, its gradients, and policy. (E.g., are they monotonic as expected?)
+            \end{itemize}
+    \end{enumerate}
+}
+
+If we see important issues that cannot be resolved by revisiting Step 1, then we consider certain ``engineering tricks'' to fix them.
+For example, we've found the following useful: 
+\begin{itemize}
+    \item \textbf{Smoothing to prevent vanishing gradients}: 
+    In the loss function, terms like $(\cdot)^+$ may cause vanishing gradients. 
+    To prevent this, we replace this ``ReLU'' function with a ``ELU'' or ``LeakyReLU'' type function. 
+    The smoothed function then gradually converges to the original ``ReLU'' function as we proceed to a target training step.
+    \item \textbf{Shape constraints}: 
+    For example, if we know that the output from a network is supposed to be non-negative, we can add a penalty term for negative values to the loss function.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{\underline{Step 3: Exploitation}}\label{sec:exploitation}
+
+This step aims to push performance to its limit for the final 1\% to 5\% improvement.
+Methods include early stopping and other techniques.
+
+
+% Bibliography section
+% \section{References}\label{sec:references}
+\nocite{*}
+\bibliography{library}
+\bibliographystyle{plainnat}
+
+\end{document}
