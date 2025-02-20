@@ -440,6 +440,7 @@ class BSDESolver:
                         step,
                         train_squared_loss,
                         val_squared_loss,
+                        val_loss.item(), 
                         y_init,
                         current_lr,
                         elapsed_time
@@ -454,7 +455,8 @@ class BSDESolver:
                 if self.lr_scheduler:
                     if self.lr_scheduler_type == "reduce_on_plateau":
                         if step >= self.lr_plateau_warmup_step:
-                            self.lr_scheduler.step(val_loss)
+                            # self.lr_scheduler.step(val_loss)
+                            self.lr_scheduler.step(val_squared_loss)
             else:
                 # # Record train_loss for steps not logged as validation steps
                 # train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
@@ -463,6 +465,7 @@ class BSDESolver:
                 training_history.append([
                     step,
                     train_squared_loss,
+                    float('nan'),
                     float('nan'),
                     float('nan'),
                     current_lr,
@@ -572,9 +575,9 @@ class BSDESolver:
             np.savetxt(
                 history_path,
                 self.training_history,
-                fmt=['%d', '%.5e', '%.5e', '%.5e', '%.5e', '%.5e'],
+                fmt=['%d', '%.5e', '%.5e', '%.5e', '%.5e', '%.5e', '%.5e'],
                 delimiter=",",
-                header='step,train_loss,val_loss,y0,learning_rate,elapsed_time',
+                header='step,train_squared_loss,val_squared_loss,val_loss,y0,learning_rate,elapsed_time',
                 comments=''
             )
             self.logger.info(f"Training history saved to {history_path}")
@@ -607,70 +610,6 @@ class BSDESolver:
                 self.logger.error(f"Failed to save LR scheduler state: {e}")
         else:
             self.logger.warning("LR scheduler is not initialized; skipping save.")
-
-    def plot_training_history(self, filename='training_history.csv'):
-        """
-        Plots the training and validation loss vs. steps using a log-scale on the y-axis.
-        Vertical dashed lines are drawn to indicate learning rate changes.
-        
-        Args:
-            filename (str): CSV filename in the experiment directory containing 
-                            training history to plot.
-        """
-        csv_path = os.path.join(self.exp_dir, filename)
-        if not os.path.exists(csv_path):
-            self.logger.error("Training history CSV file not found. Please run training first.")
-            return
-
-        df = pd.read_csv(csv_path)
-
-        # Separate training/validation losses while dropping NaN values
-        train_df = df[['step', 'train_loss']].dropna()
-        val_df = df[['step', 'val_loss']].dropna()
-
-        # Plot setup
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(train_df['step'], train_df['train_loss'], label='Training Loss')
-        ax.plot(val_df['step'], val_df['val_loss'], label='Validation Loss')
-
-        # Set y-axis to log scale
-        ax.set_yscale('log')
-
-        # Attempt to set reasonable y-axis limits
-        min_loss = min(train_df['train_loss'].min(), val_df['val_loss'].min())
-        max_loss = max(train_df['train_loss'].max(), val_df['val_loss'].max())
-        y_min = 10 ** np.floor(np.log10(min_loss))
-        y_max = 10 ** np.ceil(np.log10(max_loss))
-        ax.set_ylim(y_min, y_max)
-
-        # Add ticks for each power of ten
-        y_ticks_range = np.arange(np.floor(np.log10(y_min)), np.ceil(np.log10(y_max)) + 1)
-        ax.set_yticks(10 ** y_ticks_range)
-
-        # Identify learning-rate change steps
-        lr_changes = df[df['learning_rate'].diff() != 0]
-
-        # Plot vertical lines at LR change steps
-        step_range = df['step'].max() - df['step'].min()
-        offset = step_range * 0.01  # offset for text placement
-        for _, row in lr_changes.iterrows():
-            ax.axvline(x=row['step'], color='red', linestyle='--', alpha=0.7)
-            ax.text(row['step'], y_max - offset,
-                    f"LR: {row['learning_rate']:.3g}",
-                    rotation=270, verticalalignment='top', color='red', fontsize=9)
-
-        ax.set_xlabel('Step')
-        ax.set_ylabel('Loss')
-        ax.set_title('Training and Validation Loss with Learning Rate Changes')
-        ax.legend()
-        plt.tight_layout()
-
-        # Save and show plot
-        plot_path = os.path.join(self.exp_dir, 'training_history.png')
-        plt.savefig(plot_path)
-        plt.close()
-
-        self.logger.info(f"Training history plot saved to {plot_path}")
 
     def plot_y0_history(self, filename='training_history.csv'):
         """
@@ -719,6 +658,88 @@ class BSDESolver:
         plt.close()
 
         self.logger.info(f"Y0 history plot saved to {plot_path}")
+
+    def plot_training_history(self, filename='training_history.csv'):
+        """Creates a combined plot showing full training history and zoomed segments."""
+        csv_path = os.path.join(self.exp_dir, filename)
+        if not os.path.exists(csv_path):
+            self.logger.error("Training history CSV file not found.")
+            return
+
+        # Load and prepare data
+        df = pd.read_csv(csv_path)
+        train_df = df[['step', 'train_squared_loss']].dropna()
+        val_df = df[['step', 'val_squared_loss']].dropna()
+        lr_changes = df[df['learning_rate'].diff() != 0]
+
+        # Create figure with two rows
+        fig = plt.figure(figsize=(12, 6))
+        gs = plt.GridSpec(2, 1, height_ratios=[3, 3], figure=fig)
+
+        # Top plot: full history
+        ax_top = fig.add_subplot(gs[0, 0])
+        ax_top.plot(train_df['step'], train_df['train_squared_loss'], label='Training Loss')
+        ax_top.plot(val_df['step'], val_df['val_squared_loss'], label='Validation Loss')
+        ax_top.set_yscale('log')
+
+        # Set y-axis limits and ticks
+        min_loss = min(train_df['train_squared_loss'].min(), val_df['val_squared_loss'].min())
+        max_loss = max(train_df['train_squared_loss'].max(), val_df['val_squared_loss'].max())
+        y_min = 10**np.floor(np.log10(min_loss))
+        y_max = 10**np.ceil(np.log10(max_loss))
+        ax_top.set_ylim(y_min, y_max)
+        ax_top.set_yticks(10**np.arange(np.floor(np.log10(y_min)), np.ceil(np.log10(y_max)) + 1))
+
+        # Add learning rate change markers
+        for _, row in lr_changes.iterrows():
+            ax_top.axvline(x=row['step'], color='red', linestyle='--', alpha=0.7)
+            ax_top.text(row['step'], y_max*0.99, f"LR: {row['learning_rate']:.3g}", 
+                       rotation=270, va='top', color='red', fontsize=9)
+
+        ax_top.set_xlabel('Step')
+        ax_top.set_ylabel('Loss')
+        ax_top.set_title('Training and Validation Loss with Learning Rate Changes')
+        ax_top.legend()
+
+        # Bottom plot: three zoomed segments
+        gs_bottom = gs[1, 0].subgridspec(1, 3)
+        total_steps = df['step'].max()
+        segments = [(0, total_steps//3), (total_steps//3, 2*total_steps//3), (2*total_steps//3, total_steps)]
+
+        for i, (start, end) in enumerate(segments):
+            ax = fig.add_subplot(gs_bottom[0, i])
+            
+            # Plot segment data
+            mask = (train_df['step'] >= start) & (train_df['step'] <= end)
+            train_seg = train_df[mask]
+            val_seg = val_df[(val_df['step'] >= start) & (val_df['step'] <= end)]
+            ax.plot(train_seg['step'], train_seg['train_squared_loss'], label='Training Loss')
+            ax.plot(val_seg['step'], val_seg['val_squared_loss'], label='Validation Loss')
+            ax.set_yscale('log')
+
+            # Set segment-specific y-axis limits
+            seg_min = min(train_seg['train_squared_loss'].min(), val_seg['val_squared_loss'].min())
+            seg_max = max(train_seg['train_squared_loss'].max(), val_seg['val_squared_loss'].max())
+            ax.set_ylim(10**np.floor(np.log10(seg_min)), 10**np.ceil(np.log10(seg_max)))
+            ax.set_yticks([10**j for j in range(int(np.log10(seg_min)), int(np.log10(seg_max)) + 1)])
+            ax.yaxis.set_minor_formatter(plt.NullFormatter())
+
+            # Add learning rate markers for this segment
+            for _, row in lr_changes.iterrows():
+                if start <= row['step'] <= end:
+                    ax.axvline(x=row['step'], color='red', linestyle='--', alpha=0.7)
+
+            ax.set_xlabel('Step', fontsize=9)
+            ax.set_title(f'Steps {start}-{end} Zoomed', fontsize=9)
+            ax.tick_params(axis='both', which='major', labelsize=8)
+            if i == 0:
+                ax.set_ylabel('Loss', fontsize=9)
+
+        plt.tight_layout()
+        plot_path = os.path.join(self.exp_dir, 'training_history.png')
+        plt.savefig(plot_path)
+        plt.close()
+        self.logger.info(f"Training history plot saved to {plot_path}")
 
 
 # =====================================================================

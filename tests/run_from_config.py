@@ -69,7 +69,8 @@ def main(argv):
     bsde_solver.save_results()
     bsde_solver.plot_y0_history()
     bsde_solver.plot_training_history()
-    bsde_solver.model.plot_subnet_gradients()
+    # bsde_solver.plot_training_history_segmented()
+    # bsde_solver.model.plot_subnet_gradients()
 
 
 if __name__ == '__main__':
