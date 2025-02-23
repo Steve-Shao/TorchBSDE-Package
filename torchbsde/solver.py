@@ -738,8 +738,16 @@ class BSDESolver:
                 # Set y-axis limits based on validation loss only
                 val_min = val_seg['val_squared_loss'].min()
                 val_max = val_seg['val_squared_loss'].max()
-                margin = 0.1 * (val_max - val_min)  # Add 10% margin
-                ax.set_ylim(val_min - margin, val_max + margin)
+                
+                # Add margin based on scale type
+                if zoom_scale == 'log':
+                    # For log scale, use multiplicative margin
+                    margin_factor = 1.1  # 10% margin
+                    ax.set_ylim(val_min / margin_factor, val_max * margin_factor)
+                else:
+                    # For linear scale, use additive margin
+                    margin = 0.1 * (val_max - val_min)  # 10% margin
+                    ax.set_ylim(val_min - margin, val_max + margin)
 
                 # Add LR change marker
                 ax.axvline(x=center_step, color='red', linestyle='--', alpha=0.7)
