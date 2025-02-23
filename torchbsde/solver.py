@@ -659,8 +659,15 @@ class BSDESolver:
 
         self.logger.info(f"Y0 history plot saved to {plot_path}")
 
-    def plot_training_history(self, filename='training_history.csv', zoom_steps_window=200):
-        """Creates a combined plot showing full training history and zoomed segments around LR changes."""
+    def plot_training_history(self, filename='training_history.csv', zoom_steps=200, zoom_alpha=0.1, zoom_scale='log'):
+        """Creates a combined plot showing full training history and zoomed segments around LR changes.
+        
+        Args:
+            filename (str): CSV filename containing training history
+            zoom_steps_window (int): Number of steps to show before/after each LR change in zoom plots
+            zoom_alpha (float): Transparency for training loss in zoom plots
+            zoom_scale (str): Scale for y-axis in zoom plots - 'log' or 'linear'
+        """
         csv_path = os.path.join(self.exp_dir, filename)
         if not os.path.exists(csv_path):
             self.logger.error("Training history CSV file not found.")
@@ -713,8 +720,8 @@ class BSDESolver:
                 
                 # Define window around LR change
                 center_step = row['step']
-                window_start = max(0, center_step - zoom_steps_window)
-                window_end = center_step + zoom_steps_window
+                window_start = max(0, center_step - zoom_steps)
+                window_end = center_step + zoom_steps
 
                 # Plot segment data
                 mask = (train_df['step'] >= window_start) & (train_df['step'] <= window_end)
@@ -723,10 +730,10 @@ class BSDESolver:
                 
                 # Plot training loss with transparency
                 ax.plot(train_seg['step'], train_seg['train_squared_loss'], 
-                       label='Training Loss', alpha=0.3)
+                       label='Training Loss', alpha=zoom_alpha)
                 ax.plot(val_seg['step'], val_seg['val_squared_loss'], 
                        label='Validation Loss')
-                ax.set_yscale('log')
+                ax.set_yscale(zoom_scale)
 
                 # Set y-axis limits based on validation loss only
                 val_min = val_seg['val_squared_loss'].min()
