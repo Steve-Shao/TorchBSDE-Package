@@ -62,6 +62,12 @@ class BSDESolver:
         self.lr_plateau_threshold = self.config['solver_config'].get('lr_plateau_threshold', 1e-4)
         self.lr_plateau_cooldown = self.config['solver_config'].get('lr_plateau_cooldown', 10)
         self.lr_plateau_min_lr = self.config['solver_config'].get('lr_plateau_min_lr', 1e-5)
+        
+        # Extract checkpoint frequency from config (default: 1000)
+        self.checkpoint_frequency = self.config['solver_config'].get('checkpoint_frequency', 1000)
+        
+        # Get validation seed (default: 42)
+        self.valid_seed = self.config['solver_config'].get('valid_seed', 42)
 
         # -----------------------------------------
         # 2. Detecting and Handling Existing Experiments
@@ -404,13 +410,31 @@ class BSDESolver:
         # If we have existing history, convert to list for easy append, else start fresh
         training_history = self.training_history.tolist() if hasattr(self, 'training_history') else []
 
-        # Prepare validation data
+        # Prepare validation data with fixed seed
         valid_size = self.solver_config['valid_size']
+        
+        # Save current random states
+        torch_rng_state = torch.get_rng_state()
+        np_rng_state = np.random.get_state()
+        if torch.cuda.is_available():
+            torch_cuda_rng_state = torch.cuda.get_rng_state()
+            
+        # Set seed for validation data
+        torch.manual_seed(self.valid_seed)
+        np.random.seed(self.valid_seed)
+        
+        # Generate validation data with fixed seed
         valid_dw, valid_x, valid_u = self.bsde.sample(valid_size)
         valid_dw = valid_dw.to(dtype=self.dtype, device=self.device)
         valid_x = valid_x.to(dtype=self.dtype, device=self.device)
         if valid_u is not None:
             valid_u = valid_u.to(dtype=self.dtype, device=self.device)
+            
+        # Restore random states
+        torch.set_rng_state(torch_rng_state)
+        np.random.set_state(np_rng_state)
+        if torch.cuda.is_available():
+            torch.cuda.set_rng_state(torch_cuda_rng_state)
 
         # Main training loop
         total_steps = self.solver_config['num_iterations']
@@ -479,6 +503,12 @@ class BSDESolver:
             if self.lr_scheduler:
                 if self.lr_scheduler_type == "manual":
                     self.lr_scheduler.step()
+                    
+            # 5. Save checkpoint at specified intervals
+            if step % self.checkpoint_frequency == 0 and step > 0:
+                self.logger.info(f"Saving checkpoint at step {step}")
+                self.training_history = np.array(training_history)  # Update training_history before saving
+                self.save_results()
 
         # Convert history to numpy and store it
         self.training_history = np.array(training_history)
@@ -799,11 +829,13 @@ if __name__ == '__main__':
         "solver_config": {
             "batch_size": 64,
             "valid_size": 256,
+            "valid_seed": 42,  # Added validation seed
             "lr_start_value": 1e-2,
             "lr_decay_rate": 0.5,
             "lr_boundaries": [1000, 2000, 3000],
             "num_iterations": 5000,
             "logging_frequency": 100,
+            "checkpoint_frequency": 1000,  # Added checkpoint frequency
             "negative_grad_penalty": 0.0,
             "delta_clip": 50,
             "verbose": True,

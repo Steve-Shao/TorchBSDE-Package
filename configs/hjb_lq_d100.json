@@ -16,17 +16,18 @@
     "careful_nn_initialization": false
   },
   "solver_config": {
-    "batch_size": 64,
-    "valid_size": 256,
+    "batch_size": 256,
+    "valid_size": 1024,
     "lr_scheduler": "manual",
     "scheduler_warmup_step": 500,
     "lr_start_value": 1e-2,
     "lr_plateau_patience": 10, 
     "lr_decay_rate": 0.5,
-    "lr_boundaries": [500, 800, 1000, 1500, 2000],
-    "num_iterations": 3000,
+    "lr_boundaries": [2000],
+    "num_iterations": 1000,
     "logging_frequency": 10,
     "negative_loss_penalty": 0.0,
+    "checkpoint_frequency": 100,
     "delta_clip": 50,
     "verbose": true
   },
