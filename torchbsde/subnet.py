@@ -74,17 +74,33 @@ class FeedForwardSubNet(nn.Module):
         self.careful_nn_initialization = config['network_config'].get('careful_nn_initialization', False)
 
         # ---------------------------------------------------------------------
-        # Set activation function
+        # Set activation function with configurable parameters
         # ---------------------------------------------------------------------
         activation_function_str = config['network_config'].get('activation_function', 'ReLU')
+        
+        # Get activation function parameters from config (if provided)
+        activation_params = config['network_config'].get('activation_params', {})
+        
+        # Create a dictionary of activation functions with their parameters
         activation_functions = {
-            'ReLU': F.relu,
-            'LeakyReLU': F.leaky_relu,
-            'Sigmoid': torch.sigmoid,
-            'Tanh': torch.tanh,
-            'ELU': F.elu,
+            'ReLU': lambda x: F.relu(x),
+            'LeakyReLU': lambda x: F.leaky_relu(x, negative_slope=activation_params.get('leakyrelu_negative_slope', 0.01)),
+            'Sigmoid': lambda x: torch.sigmoid(x),
+            'Tanh': lambda x: torch.tanh(x),
+            'ELU': lambda x: F.elu(x, alpha=activation_params.get('elu_alpha', 1.0)),
+            'GELU': lambda x: F.gelu(x),
+            'SELU': lambda x: F.selu(x),
+            'SiLU': lambda x: F.silu(x),  # Swish activation
+            'Swish': lambda x: F.silu(x),  # Alternative name for SiLU
+            'Softmax': lambda x: F.softmax(x, dim=activation_params.get('softmax_dim', -1)),
+            'Hardswish': lambda x: F.hardswish(x),
+            'Hardtanh': lambda x: F.hardtanh(x, 
+                                min_val=activation_params.get('hardtanh_min_val', -1.0), 
+                                max_val=activation_params.get('hardtanh_max_val', 1.0)),
+            'Hardsigmoid': lambda x: F.hardsigmoid(x),
             # Add more activation functions here if needed
         }
+        
         if activation_function_str not in activation_functions:
             raise ValueError(f"Invalid activation function: {activation_function_str}")
         self.activation = activation_functions[activation_function_str]
@@ -152,11 +168,13 @@ class FeedForwardSubNet(nn.Module):
         # Apply careful initialization if enabled
         # ---------------------------------------------------------------------
         if self.careful_nn_initialization:
-            if activation_function_str in ['ReLU', 'LeakyReLU', 'ELU']:
+            # ReLU-like activations (use Kaiming/He initialization)
+            if activation_function_str in ['ReLU', 'LeakyReLU', 'ELU', 'GELU', 'SELU', 'SiLU', 'Swish', 'Hardswish']:
                 for layer in self.dense_layers:
                     if isinstance(layer, nn.Linear):
                         nn.init.kaiming_uniform_(layer.weight, a=math.sqrt(5), nonlinearity='relu')
-            elif activation_function_str in ['Sigmoid', 'Tanh']:
+            # Sigmoid/Tanh-like activations (use Xavier/Glorot initialization)
+            elif activation_function_str in ['Sigmoid', 'Tanh', 'Hardsigmoid', 'Hardtanh', 'Softmax']:
                 for layer in self.dense_layers:
                     if isinstance(layer, nn.Linear):
                         nn.init.xavier_uniform_(layer.weight)
@@ -185,7 +203,9 @@ class FeedForwardSubNet(nn.Module):
             x = self.dense_layers[i](x)
             if self.bn_layers[i + 1] is not None:  # i+1 for BN index in hidden
                 x = self.bn_layers[i + 1](x)
-            x = self.activation(x)  # Use variable activation function
+            
+            # Apply activation function (now simplified since parameters are handled by lambda)
+            x = self.activation(x)
 
         # ----------------------------------------------------------
         # 3) Final layer -> Output BN
@@ -213,7 +233,8 @@ if __name__ == "__main__":
             'use_bn_output': True,
             'use_shallow_y_init': True,
             'careful_nn_initialization': True,  # Set to True to enable careful initialization
-            'activation_function': 'ReLU'      # Change as needed
+            'activation_function': 'LeakyReLU',
+            'activation_params': {'negative_slope': 0.2}  # Configure LeakyReLU's slope
         }
     }
 

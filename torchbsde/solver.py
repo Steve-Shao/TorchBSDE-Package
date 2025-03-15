@@ -425,10 +425,10 @@ class BSDESolver:
         
         # Generate validation data with fixed seed
         valid_dw, valid_x, valid_u = self.bsde.sample(valid_size)
-        valid_dw = valid_dw.to(dtype=self.dtype, device=self.device)
-        valid_x = valid_x.to(dtype=self.dtype, device=self.device)
+        valid_dw = valid_dw.to(dtype=self.dtype, device=self.device, non_blocking=True)
+        valid_x = valid_x.to(dtype=self.dtype, device=self.device, non_blocking=True)
         if valid_u is not None:
-            valid_u = valid_u.to(dtype=self.dtype, device=self.device)
+            valid_u = valid_u.to(dtype=self.dtype, device=self.device, non_blocking=True)
             
         # Restore random states
         torch.set_rng_state(torch_rng_state)
@@ -446,17 +446,14 @@ class BSDESolver:
             if train_u is not None:
                 train_u = train_u.to(dtype=self.dtype, device=self.device)
 
-            # Record train_loss for steps not logged as validation steps
-            train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
+            # 2. Perform training step and get losses
+            train_loss, train_squared_loss = self._train_step(train_dw, train_x, train_u, step)
             current_lr = self.optimizer.param_groups[0]['lr']
             elapsed_time = time.time() - start_time
 
-            # 2. Logging & validation at specified intervals
+            # 3. Logging & validation at specified intervals
             if step % self.solver_config['logging_frequency'] == 0:
                 with torch.no_grad():
-                    # train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
-                    # current_lr = self.optimizer.param_groups[0]['lr']
-                    # elapsed_time = time.time() - start_time
                     val_loss, val_squared_loss = self.loss_fn(valid_dw, valid_x, valid_u, step, training=False)
                     y_init_val = self.y_init(valid_x[:, :, 0], training=False)
                     y_init = y_init_val.data.cpu().numpy().mean()
@@ -473,19 +470,13 @@ class BSDESolver:
                         self.logger.info(
                             f"step: {step:5}, val loss: {val_squared_loss:.6f}, "
                             f"Y0: {y_init:.6f}, lr: {current_lr:.6f}"
-                            # f"elapsed time: {int(elapsed_time)}"
                         )
                 # 4. Step the LR scheduler based on the scheduler type
                 if self.lr_scheduler:
                     if self.lr_scheduler_type == "reduce_on_plateau":
                         if step >= self.lr_plateau_warmup_step:
-                            # self.lr_scheduler.step(val_loss)
                             self.lr_scheduler.step(val_squared_loss)
             else:
-                # # Record train_loss for steps not logged as validation steps
-                # train_loss, train_squared_loss = self.loss_fn(train_dw, train_x, train_u, step, training=True)
-                # current_lr = self.optimizer.param_groups[0]['lr']
-                # elapsed_time = time.time() - start_time
                 training_history.append([
                     step,
                     train_squared_loss,
@@ -495,9 +486,6 @@ class BSDESolver:
                     current_lr,
                     elapsed_time
                 ])
-
-            # 3. Perform a single training step
-            self._train_step(train_dw, train_x, train_u, step)
 
             # 4. Step the LR scheduler based on the scheduler type
             if self.lr_scheduler:
@@ -514,21 +502,12 @@ class BSDESolver:
         self.training_history = np.array(training_history)
 
     def _train_step(self, dw, x, u, step):
-        """
-        Performs one training step, consisting of:
-            - Computing the loss
-            - Zeroing gradients
-            - Backpropagating
-            - Stepping the optimizer
-        
-        Args:
-            dw (torch.Tensor): Brownian increments (batch)
-            x  (torch.Tensor): State process (batch)
-        """
+        """Performs one training step and returns losses"""
         loss, plain_loss = self.loss_fn(dw, x, u, step, training=True)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        return loss.item(), plain_loss
 
     def loss_fn(self, dw, x, u, step, training):
         """
@@ -563,8 +542,9 @@ class BSDESolver:
         delta = y_terminal - g_terminal
         abs_delta = torch.abs(delta)
 
-        # Calculate plain squared loss
-        plain_squared_loss = torch.mean(delta**2).item()
+        # Calculate plain squared loss (avoid item() for training)
+        plain_squared_loss = torch.mean(delta**2)
+        plain_squared_loss_value = plain_squared_loss.detach().cpu().item() if not training else plain_squared_loss
 
         # Mask for deltas within the clipping threshold
         mask = abs_delta < self.delta_clip
@@ -581,7 +561,9 @@ class BSDESolver:
 
         # Add penalty for negative output if needed
         loss += self.negative_grad_penalty * negative_grad_loss
-        return loss, plain_squared_loss
+        
+        # Only convert to float for return when needed
+        return loss, plain_squared_loss_value if not training else plain_squared_loss.detach().cpu().item()
 
     # =====================================================================
     #                       SAVING AND PLOTTING

@@ -12,7 +12,10 @@
     "use_bn_output": false,
     "use_shallow_y_init": false,
     "num_hiddens": [110, 110],
-    "activation_function": "LeakyReLU", 
+    "activation_function": "ELU", 
+    "activation_params": {
+      "elu_alpha": 0.0
+    },
     "careful_nn_initialization": false
   },
   "solver_config": {
